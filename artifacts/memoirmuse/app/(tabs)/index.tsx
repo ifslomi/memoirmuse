@@ -1,13 +1,13 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Platform,
   Dimensions,
+  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -18,61 +18,130 @@ import COLORS from "@/constants/colors";
 
 const { width } = Dimensions.get("window");
 
-const SECTIONS = [
+const FEATURES = [
   {
     id: "timeline",
     label: "Timeline",
-    description: "Life milestones",
+    description: "Journey through key life milestones",
     icon: "clock" as const,
     route: "/(tabs)/timeline" as const,
-    color: COLORS.primary,
     gradient: [COLORS.primary, COLORS.primaryDark] as [string, string],
   },
   {
     id: "ar",
     label: "AR Scanner",
-    description: "Scan & discover",
+    description: "Reveal 3D holographic artifacts",
     icon: "camera" as const,
     route: "/(tabs)/ar" as const,
-    color: COLORS.accent,
-    gradient: [COLORS.accent, "#9A6B1A"] as [string, string],
+    gradient: [COLORS.accent, "#7A5A14"] as [string, string],
   },
   {
     id: "gallery",
     label: "Gallery",
-    description: "Historical artifacts",
+    description: "Explore the historical collection",
     icon: "image" as const,
     route: "/(tabs)/gallery" as const,
-    color: "#4A7A8C",
     gradient: ["#4A7A8C", "#2E5A6A"] as [string, string],
   },
   {
     id: "quiz",
     label: "Quiz",
-    description: "Test your knowledge",
+    description: "Test your heritage knowledge",
     icon: "help-circle" as const,
     route: "/(tabs)/quiz" as const,
-    color: COLORS.success,
     gradient: [COLORS.success, "#2E6040"] as [string, string],
   },
   {
     id: "map",
-    label: "Map",
-    description: "Heritage sites",
+    label: "Heritage Map",
+    description: "Discover cultural sites in Marikina",
     icon: "map-pin" as const,
     route: "/(tabs)/map" as const,
-    color: "#6B4A8C",
     gradient: ["#6B4A8C", "#4A2E6A"] as [string, string],
   },
 ];
 
+function AnimatedCard({
+  item,
+  index,
+  onPress,
+  wide,
+}: {
+  item: typeof FEATURES[0];
+  index: number;
+  onPress: (route: string) => void;
+  wide?: boolean;
+}) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(24)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        delay: 200 + index * 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        delay: 200 + index * 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        wide ? styles.featureCardWide : styles.featureCard,
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+      ]}
+    >
+      <TouchableOpacity
+        style={styles.featureCardInner}
+        onPress={() => onPress(item.route)}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={item.gradient}
+          style={styles.featureGrad}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.featureIconBox}>
+            <Feather name={item.icon} size={26} color="#fff" />
+          </View>
+          <View style={styles.featureLabelWrap}>
+            <Text style={styles.featureLabel}>{item.label}</Text>
+            <Text style={styles.featureDesc}>{item.description}</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.55)" />
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 0 : insets.top;
+  const heroAnim = useRef(new Animated.Value(0)).current;
+  const statsAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.stagger(120, [
+      Animated.timing(heroAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(statsAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   const handlePress = async (route: string) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web") {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     router.push(route as any);
   };
 
@@ -80,323 +149,184 @@ export default function HomeScreen() {
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: topPad, paddingBottom: Platform.OS === "web" ? 120 : 100 },
-      ]}
+      contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: 160 }]}
     >
       <LinearGradient
-        colors={[COLORS.primaryDark, COLORS.primary, COLORS.primaryLight]}
+        colors={[COLORS.primaryDark, COLORS.primary, "#A84040"]}
         style={styles.hero}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <View style={styles.heroOverlay}>
-          <View style={styles.decorativeLine} />
-          <Text style={styles.heroSubtitle}>MEMOIRMUSE</Text>
-          <Text style={styles.heroTitle}>Pedro S.{"\n"}Tolentino</Text>
+        <Animated.View style={[styles.heroInner, { opacity: heroAnim }]}>
+          <Text style={styles.heroApp}>MEMOIRMUSE</Text>
+          <View style={styles.heroDivLine} />
+          <Text style={styles.heroName}>Pedro S.{"\n"}Tolentino</Text>
           <Text style={styles.heroTagline}>Father of Tagalog Zarzuela</Text>
           <View style={styles.heroMeta}>
-            <Text style={styles.heroDate}>1858 – 1913</Text>
-            <View style={styles.heroDivider} />
-            <Text style={styles.heroPlace}>Marikina, Philippines</Text>
+            <Feather name="calendar" size={12} color="rgba(255,255,255,0.6)" />
+            <Text style={styles.heroMetaText}>1858 – 1913</Text>
+            <View style={styles.heroMetaDot} />
+            <Feather name="map-pin" size={12} color="rgba(255,255,255,0.6)" />
+            <Text style={styles.heroMetaText}>Marikina</Text>
           </View>
-          <View style={styles.decorativeLine} />
-        </View>
+        </Animated.View>
       </LinearGradient>
 
-      <View style={styles.bioSection}>
+      <Animated.View style={[styles.statsRow, { opacity: statsAnim }]}>
+        {[
+          { value: "55+", label: "Zarzuelas" },
+          { value: "1900", label: "Masterpiece" },
+          { value: "55", label: "Years Lived" },
+        ].map((s, i) => (
+          <React.Fragment key={s.value}>
+            {i > 0 && <View style={styles.statSep} />}
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+          </React.Fragment>
+        ))}
+      </Animated.View>
+
+      <View style={styles.bioWrap}>
         <Text style={styles.sectionLabel}>BIOGRAPHY</Text>
         <Text style={styles.bioText}>
-          Pedro Serrano Tolentino was a celebrated playwright, nationalist, and
-          pioneer of Filipino theatrical arts. Through his zarzuelas and allegorical
-          plays, he wove cultural resistance into art, leaving an enduring legacy
-          that continues to inspire generations.
+          Pedro Serrano Tolentino was a celebrated playwright, nationalist, and pioneer
+          of Filipino theatrical arts. Through his zarzuelas and allegorical plays, he wove
+          cultural resistance into art — leaving an enduring legacy that inspires generations.
         </Text>
         <TouchableOpacity
-          style={styles.readMoreBtn}
+          style={styles.bioLink}
           onPress={() => handlePress("/(tabs)/timeline")}
           activeOpacity={0.7}
         >
-          <Text style={styles.readMoreText}>Explore his story</Text>
+          <Text style={styles.bioLinkText}>Explore his timeline</Text>
           <Feather name="arrow-right" size={14} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>55+</Text>
-          <Text style={styles.statLabel}>Zarzuelas Written</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>1900</Text>
-          <Text style={styles.statLabel}>Masterpiece Written</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>55</Text>
-          <Text style={styles.statLabel}>Years of Life</Text>
+      <View style={styles.featuresSection}>
+        <Text style={styles.sectionLabel}>EXPLORE</Text>
+
+        <View style={styles.featuresGrid}>
+          {FEATURES.map((item, index) => (
+            <AnimatedCard
+              key={item.id}
+              item={item}
+              index={index}
+              onPress={handlePress}
+              wide={index === 0}
+            />
+          ))}
         </View>
       </View>
 
-      <Text style={styles.exploreSectionTitle}>EXPLORE</Text>
-
-      <View style={styles.grid}>
-        {SECTIONS.map((section, index) => (
-          <TouchableOpacity
-            key={section.id}
-            style={[
-              styles.gridItem,
-              index === 0 && styles.gridItemWide,
-            ]}
-            onPress={() => handlePress(section.route)}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={section.gradient}
-              style={styles.gridGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.gridIconContainer}>
-                <Feather name={section.icon} size={24} color={COLORS.white} />
-              </View>
-              <Text style={styles.gridLabel}>{section.label}</Text>
-              <Text style={styles.gridDescription}>{section.description}</Text>
-              <Feather
-                name="chevron-right"
-                size={16}
-                color="rgba(255,255,255,0.6)"
-                style={styles.gridArrow}
-              />
-            </LinearGradient>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.quoteSection}>
-        <View style={styles.quoteBar} />
-        <Text style={styles.quoteText}>
-          "Art is the voice of the soul of a nation — and the Filipino soul will not be silenced."
-        </Text>
-        <Text style={styles.quoteAttrib}>— Inspired by Pedro S. Tolentino</Text>
+      <View style={styles.quoteWrap}>
+        <View style={styles.quoteAccent} />
+        <View style={styles.quoteBody}>
+          <Text style={styles.quoteText}>
+            "Art is the voice of the soul of a nation — and the Filipino soul will not be silenced."
+          </Text>
+          <Text style={styles.quoteAttrib}>— Inspired by Pedro S. Tolentino</Text>
+        </View>
       </View>
     </ScrollView>
   );
 }
 
-const CARD_WIDTH = (width - 48) / 2;
+const CARD_W = (width - 56) / 2;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    paddingHorizontal: 0,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { paddingHorizontal: 0 },
+
   hero: {
-    width: "100%",
-    minHeight: 280,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    justifyContent: "center",
+    paddingHorizontal: 28,
+    paddingTop: 48,
+    paddingBottom: 40,
   },
-  heroOverlay: {
-    alignItems: "center",
-    gap: 8,
-  },
-  decorativeLine: {
-    width: 60,
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.4)",
-    marginVertical: 4,
-  },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.65)",
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 3,
-  },
-  heroTitle: {
-    color: COLORS.white,
-    fontSize: 40,
-    fontFamily: "Inter_700Bold",
-    textAlign: "center",
-    lineHeight: 46,
-  },
-  heroTagline: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    fontStyle: "italic",
-    textAlign: "center",
-  },
-  heroMeta: {
+  heroInner: { alignItems: "center", gap: 10 },
+  heroApp: { fontSize: 11, fontFamily: "Inter_700Bold", color: "rgba(255,255,255,0.55)", letterSpacing: 4 },
+  heroDivLine: { width: 48, height: 1, backgroundColor: "rgba(255,255,255,0.3)" },
+  heroName: { fontSize: 44, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center", lineHeight: 50 },
+  heroTagline: { fontSize: 15, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.8)", fontStyle: "italic", textAlign: "center" },
+  heroMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
+  heroMetaText: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.65)" },
+  heroMetaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: "rgba(255,255,255,0.35)" },
+
+  statsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 4,
-  },
-  heroDate: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-  },
-  heroDivider: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.5)",
-  },
-  heroPlace: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-  },
-  bioSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     paddingVertical: 24,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderLight,
+  },
+  statItem: { flex: 1, alignItems: "center", gap: 5 },
+  statValue: { fontSize: 24, fontFamily: "Inter_700Bold", color: COLORS.primary },
+  statLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: COLORS.textMuted, textAlign: "center" },
+  statSep: { width: 1, backgroundColor: COLORS.borderLight, marginHorizontal: 8 },
+
+  bioWrap: {
+    paddingHorizontal: 28,
+    paddingVertical: 28,
     backgroundColor: COLORS.surfaceWarm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.primary,
-    letterSpacing: 2,
-    marginBottom: 10,
-  },
-  bioText: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    lineHeight: 24,
-  },
-  readMoreBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 14,
-  },
-  readMoreText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.primary,
-  },
-  statsRow: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    backgroundColor: COLORS.background,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
-  },
-  statNumber: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.primary,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textMuted,
-    textAlign: "center",
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: COLORS.borderLight,
-    marginHorizontal: 8,
-  },
-  exploreSectionTitle: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 12,
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.primary,
-    letterSpacing: 2,
-  },
-  grid: {
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: 12,
   },
-  gridItem: {
-    width: CARD_WIDTH,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  gridItemWide: {
-    width: "100%",
-  },
-  gridGradient: {
+  sectionLabel: { fontSize: 11, fontFamily: "Inter_700Bold", color: COLORS.primary, letterSpacing: 2.5 },
+  bioText: { fontSize: 15, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 26 },
+  bioLink: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  bioLinkText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: COLORS.primary },
+
+  featuresSection: { paddingHorizontal: 20, paddingTop: 28, gap: 16 },
+  featuresGrid: { gap: 12 },
+
+  featureCardWide: { width: "100%" },
+  featureCard: { width: CARD_W },
+  featureCardInner: { borderRadius: 18, overflow: "hidden" },
+
+  featureGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     padding: 20,
-    minHeight: 120,
-    justifyContent: "space-between",
+    minHeight: 90,
   },
-  gridIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  featureIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    flexShrink: 0,
   },
-  gridLabel: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.white,
-  },
-  gridDescription: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
-    marginTop: 2,
-  },
-  gridArrow: {
-    alignSelf: "flex-end",
-    marginTop: 8,
-  },
-  quoteSection: {
-    marginHorizontal: 24,
-    marginTop: 28,
-    paddingLeft: 16,
+  featureLabelWrap: { flex: 1, gap: 3 },
+  featureLabel: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
+  featureDesc: { fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.75)" },
+
+  quoteWrap: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 14,
-    flexWrap: "wrap",
+    gap: 16,
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 8,
   },
-  quoteBar: {
-    width: 3,
-    backgroundColor: COLORS.accent,
-    borderRadius: 2,
-    alignSelf: "stretch",
-    minHeight: 60,
-  },
+  quoteAccent: { width: 3, minHeight: 64, backgroundColor: COLORS.accent, borderRadius: 2 },
+  quoteBody: { flex: 1, gap: 8 },
   quoteText: {
-    flex: 1,
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
     color: COLORS.textSecondary,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   quoteAttrib: {
-    width: "100%",
-    paddingLeft: 17,
     fontSize: 12,
     fontFamily: "Inter_500Medium",
     color: COLORS.textMuted,
-    marginTop: 6,
   },
 });
