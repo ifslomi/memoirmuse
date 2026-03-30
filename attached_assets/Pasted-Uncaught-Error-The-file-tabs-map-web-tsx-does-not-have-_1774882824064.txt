@@ -1,0 +1,89 @@
+Uncaught Error
+The file ./(tabs)/map.web.tsx does not have a fallback sibling file without a platform extension.
+Source
+ 
+ 720 |
+const
+ route 
+=
+ routes[routes
+.
+length 
+-
+ 
+1
+]
+;
+ 
+ 721 |
+if
+ (
+!
+routes[
+0
+]) {
+>
+ 722 |
+    
+throw
+ 
+new
+ 
+Error
+(
+`The file ${route.contextKey} does not have a fallback sibling file without a platform extension.`
+)
+;
+ 
+     |
+          
+^
+ 
+ 723 |
+}
+ 
+ 724 |
+// This works even tho routes is holey array (e.g it might have index 0 and 2 but not 1)
+ 
+ 725 |
+// `.length` includes the holes in its count
+Call Stack
+getMostSpecific
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/getRoutesCore.js:722:15
+flattenDirectoryTreeToRoutes
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/getRoutesCore.js:476:27
+flattenDirectoryTreeToRoutes
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/getRoutesCore.js:487:9
+getRoutes
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/getRoutesCore.js:28:22
+getRoutes
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/getRoutes.js:20:41
+useStore
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/global-state/router-store.js:141:48
+ContextNavigator
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/ExpoRoot.js:128:46
+callComponent.reactStackBottomFrame
+node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-client.development.js:23863:20
+renderWithHooks
+node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-client.development.js:5529:22
+updateFunctionComponent
+node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-client.development.js:8897:19
+Collapse all 10 frames
+Component Stack
+ContextNavigator
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/ExpoRoot.js:95:29
+ExpoRoot
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/build/ExpoRoot.js:68:30
+_HelmetProvider#constructor
+node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/vendor/react-helmet-async/lib/index.js:483:5
+App
+<anonymous>:-1:0
+LogBoxStateSubscription#constructor
+node_modules/.pnpm/@expo+metro-runtime@6.1.2_expo@54.0.33_react-dom@19.1.0_react@19.1.0__react-native@0.81_98026a05792048d9871e86202e07ccd2/node_modules/@expo/metro-runtime/src/error-overlay/Data/LogBoxData.tsx:365:7
+ErrorOverlay
+<anonymous>:-1:0
+withDevTools(ErrorOverlay)
+<anonymous>:-1:0
+AppContainer
+shim:react-native-web/dist/exports/AppRegistry/AppContainer.js
+Collapse all 8 frames
