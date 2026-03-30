@@ -1,41 +1,12 @@
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import COLORS from "@/constants/colors";
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="timeline">
-        <Icon sf={{ default: "clock", selected: "clock.fill" }} />
-        <Label>Timeline</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="ar">
-        <Icon sf={{ default: "camera", selected: "camera.fill" }} />
-        <Label>AR</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="gallery">
-        <Icon sf={{ default: "photo", selected: "photo.fill" }} />
-        <Label>Gallery</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="quiz">
-        <Icon sf={{ default: "questionmark.circle", selected: "questionmark.circle.fill" }} />
-        <Label>Quiz</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
-
-function ClassicTabLayout() {
+export default function TabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -145,11 +116,4 @@ function ClassicTabLayout() {
       />
     </Tabs>
   );
-}
-
-export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
 }
