@@ -7,8 +7,8 @@ import {
   Platform,
   Animated,
   Dimensions,
-  Modal,
   ScrollView,
+  Modal,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather } from "@expo/vector-icons";
@@ -20,167 +20,139 @@ import { AR_MARKERS } from "@/constants/data";
 
 const { width, height } = Dimensions.get("window");
 
+type ScanState = "idle" | "scanning" | "detected";
+
 export default function ARScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanning, setScanning] = useState(false);
-  const [detected, setDetected] = useState(false);
-  const [selectedMarker, setSelectedMarker] = useState<typeof AR_MARKERS[0] | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
+  const [scanState, setScanState] = useState<ScanState>("idle");
   const [markerIndex, setMarkerIndex] = useState(0);
+  const [showDetail, setShowDetail] = useState(false);
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
-  const scanAnim = useRef(new Animated.Value(0)).current;
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const detectAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const overlayAnim = useRef(new Animated.Value(0)).current;
+  const cornerAnim = useRef(new Animated.Value(0)).current;
+  const scanLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+
+  const currentMarker = AR_MARKERS[markerIndex % AR_MARKERS.length];
 
   useEffect(() => {
-    let scanInterval: ReturnType<typeof setTimeout>;
+    if (scanState === "scanning") {
+      Animated.timing(cornerAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
 
-    if (scanning) {
-      Animated.loop(
+      scanLoop.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(scanAnim, {
+          Animated.timing(scanLineAnim, {
             toValue: 1,
-            duration: 2000,
+            duration: 1800,
             useNativeDriver: true,
           }),
-          Animated.timing(scanAnim, {
+          Animated.timing(scanLineAnim, {
             toValue: 0,
             duration: 0,
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      scanLoop.current.start();
 
-      scanInterval = setTimeout(async () => {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setDetected(true);
-        setSelectedMarker(AR_MARKERS[markerIndex % AR_MARKERS.length]);
-        setScanning(false);
+      const timer = setTimeout(async () => {
+        scanLoop.current?.stop();
+        if (Platform.OS !== "web") {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        setScanState("detected");
 
-        Animated.spring(overlayAnim, {
+        Animated.spring(detectAnim, {
           toValue: 1,
           useNativeDriver: true,
-          tension: 100,
+          tension: 80,
           friction: 8,
         }).start();
 
-        Animated.loop(
+        pulseLoop.current = Animated.loop(
           Animated.sequence([
             Animated.timing(pulseAnim, {
-              toValue: 1.05,
-              duration: 1000,
+              toValue: 1.03,
+              duration: 1200,
               useNativeDriver: true,
             }),
             Animated.timing(pulseAnim, {
               toValue: 1,
-              duration: 1000,
+              duration: 1200,
               useNativeDriver: true,
             }),
           ])
-        ).start();
-      }, 3000);
+        );
+        pulseLoop.current.start();
+      }, 3500);
+
+      return () => {
+        clearTimeout(timer);
+        scanLoop.current?.stop();
+      };
+    } else if (scanState === "idle") {
+      Animated.timing(cornerAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      pulseLoop.current?.stop();
     }
+  }, [scanState]);
 
-    return () => {
-      if (scanInterval) clearTimeout(scanInterval);
-      scanAnim.stopAnimation();
-    };
-  }, [scanning, markerIndex]);
-
-  const handleStartScan = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setDetected(false);
-    setSelectedMarker(null);
-    overlayAnim.setValue(0);
+  const handleScan = async () => {
+    if (Platform.OS !== "web") {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    detectAnim.setValue(0);
     pulseAnim.setValue(1);
-    scanAnim.setValue(0);
-    setScanning(true);
+    scanLineAnim.setValue(0);
+    setScanState("scanning");
   };
 
   const handleReset = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setScanning(false);
-    setDetected(false);
-    setSelectedMarker(null);
-    overlayAnim.setValue(0);
-    setMarkerIndex((prev) => (prev + 1) % AR_MARKERS.length);
+    if (Platform.OS !== "web") {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    pulseLoop.current?.stop();
+    setScanState("idle");
+    setMarkerIndex((i) => (i + 1) % AR_MARKERS.length);
   };
 
-  const scanLineY = scanAnim.interpolate({
+  const scanLineY = scanLineAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 200],
+    outputRange: [0, 220],
   });
 
   if (Platform.OS === "web") {
-    return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[COLORS.primaryDark, COLORS.primary]}
-          style={[styles.header, { paddingTop: topPad + 16 }]}
-        >
-          <Text style={styles.headerTitle}>AR Scanner</Text>
-          <Text style={styles.headerSubtitle}>Point & Discover</Text>
-        </LinearGradient>
-        <View style={styles.webFallback}>
-          <View style={styles.webFallbackIcon}>
-            <Feather name="camera" size={48} color={COLORS.textMuted} />
-          </View>
-          <Text style={styles.webFallbackTitle}>AR Available on Mobile</Text>
-          <Text style={styles.webFallbackText}>
-            Open this app on your mobile device via Expo Go to use the Augmented
-            Reality scanner to discover historical artifacts.
-          </Text>
-          <Text style={styles.webFallbackHint}>
-            Scan the QR code from the Replit URL bar
-          </Text>
-          <TouchableOpacity style={styles.simulateBtn} onPress={handleStartScan}>
-            <Feather name="zap" size={16} color={COLORS.white} />
-            <Text style={styles.simulateBtnText}>Simulate AR Discovery</Text>
-          </TouchableOpacity>
-          {detected && selectedMarker && (
-            <Animated.View
-              style={[
-                styles.detectedCard,
-                { transform: [{ scale: overlayAnim }], opacity: overlayAnim },
-              ]}
-            >
-              <View style={styles.detectedHeader}>
-                <View style={styles.detectedIcon}>
-                  <Feather name={selectedMarker.icon as any} size={22} color={COLORS.white} />
-                </View>
-                <View>
-                  <Text style={styles.detectedLabel}>AR Discovered</Text>
-                  <Text style={styles.detectedTitle}>{selectedMarker.title}</Text>
-                </View>
-              </View>
-              <Text style={styles.detectedDesc}>{selectedMarker.description}</Text>
-              <TouchableOpacity
-                style={styles.learnMoreBtn}
-                onPress={() => setShowDetail(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.learnMoreText}>Learn More</Text>
-                <Feather name="arrow-right" size={14} color={COLORS.white} />
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-        </View>
-        <DetailModal
-          visible={showDetail}
-          marker={selectedMarker}
-          onClose={() => setShowDetail(false)}
-          onNext={handleReset}
-        />
-      </View>
-    );
+    return <WebARScreen
+      scanState={scanState}
+      currentMarker={currentMarker}
+      markerIndex={markerIndex}
+      topPad={topPad}
+      scanLineAnim={scanLineAnim}
+      detectAnim={detectAnim}
+      pulseAnim={pulseAnim}
+      showDetail={showDetail}
+      onScan={handleScan}
+      onReset={handleReset}
+      onShowDetail={() => setShowDetail(true)}
+      onHideDetail={() => setShowDetail(false)}
+    />;
   }
 
   if (!permission) {
     return (
       <View style={[styles.container, styles.center]}>
-        <Text style={styles.permissionText}>Loading camera...</Text>
+        <Text style={styles.loadText}>Initializing camera…</Text>
       </View>
     );
   }
@@ -188,18 +160,17 @@ export default function ARScreen() {
   if (!permission.granted) {
     return (
       <View style={[styles.container, styles.center]}>
-        <View style={styles.permissionContainer}>
-          <Feather name="camera-off" size={48} color={COLORS.textMuted} />
-          <Text style={styles.permissionTitle}>Camera Access Required</Text>
-          <Text style={styles.permissionText}>
-            MemoirMuse needs camera access to enable the AR scanner experience.
+        <View style={styles.permBox}>
+          <View style={styles.permIcon}>
+            <Feather name="camera-off" size={40} color={COLORS.textMuted} />
+          </View>
+          <Text style={styles.permTitle}>Camera Access Required</Text>
+          <Text style={styles.permText}>
+            MemoirMuse needs camera access to scan AR markers and reveal
+            historical artifacts.
           </Text>
-          <TouchableOpacity
-            style={styles.permissionBtn}
-            onPress={requestPermission}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.permissionBtnText}>Grant Camera Access</Text>
+          <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
+            <Text style={styles.permBtnText}>Grant Access</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -208,96 +179,296 @@ export default function ARScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing="back">
-        <View style={[styles.overlay, { paddingTop: topPad }]}>
-          <View style={styles.topBar}>
-            <Text style={styles.arTitle}>AR Scanner</Text>
-            {detected && (
-              <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-                <Feather name="refresh-cw" size={16} color={COLORS.white} />
+      <CameraView style={StyleSheet.absoluteFill} facing="back">
+        <LinearGradient
+          colors={["rgba(0,0,0,0.6)", "transparent", "transparent", "rgba(0,0,0,0.7)"]}
+          style={[StyleSheet.absoluteFill, { paddingTop: topPad }]}
+        >
+          <View style={styles.nativeTopBar}>
+            <Text style={styles.nativeTitle}>AR Scanner</Text>
+            {scanState === "detected" && (
+              <TouchableOpacity style={styles.nativeResetBtn} onPress={handleReset}>
+                <Feather name="refresh-cw" size={16} color="#fff" />
+                <Text style={styles.nativeResetText}>Next</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {!detected && (
-            <View style={styles.scanFrame}>
-              <View style={styles.scanCornerTL} />
-              <View style={styles.scanCornerTR} />
-              <View style={styles.scanCornerBL} />
-              <View style={styles.scanCornerBR} />
-              {scanning && (
+          {scanState !== "detected" && (
+            <View style={styles.frameArea}>
+              <View style={[styles.corner, styles.cornerTL]} />
+              <View style={[styles.corner, styles.cornerTR]} />
+              <View style={[styles.corner, styles.cornerBL]} />
+              <View style={[styles.corner, styles.cornerBR]} />
+              {scanState === "scanning" && (
                 <Animated.View
-                  style={[
-                    styles.scanLine,
-                    { transform: [{ translateY: scanLineY }] },
-                  ]}
+                  style={[styles.nativeScanLine, { transform: [{ translateY: scanLineY }] }]}
                 />
               )}
             </View>
           )}
 
-          {detected && selectedMarker && (
+          {scanState === "detected" && (
             <Animated.View
               style={[
-                styles.detectedOverlay,
-                {
-                  transform: [{ scale: overlayAnim }, { scale: pulseAnim }],
-                  opacity: overlayAnim,
-                },
+                styles.nativeDetect,
+                { opacity: detectAnim, transform: [{ scale: pulseAnim }] },
               ]}
             >
               <LinearGradient
                 colors={[COLORS.primaryDark + "F0", COLORS.primary + "F0"]}
-                style={styles.detectedGradient}
+                style={styles.nativeDetectGrad}
               >
-                <View style={styles.detectedIcon}>
-                  <Feather name={selectedMarker.icon as any} size={24} color={COLORS.white} />
+                <View style={styles.nativeDetectIcon}>
+                  <Feather name={currentMarker.icon as any} size={28} color="#fff" />
                 </View>
-                <Text style={styles.detectedBadge}>AR DETECTED</Text>
-                <Text style={styles.detectedTitle}>{selectedMarker.title}</Text>
-                <Text style={styles.detectedDesc}>{selectedMarker.description}</Text>
+                <Text style={styles.nativeDetectBadge}>AR DETECTED</Text>
+                <Text style={styles.nativeDetectTitle}>{currentMarker.title}</Text>
+                <Text style={styles.nativeDetectDesc}>{currentMarker.description}</Text>
                 <TouchableOpacity
-                  style={styles.learnMoreBtn}
+                  style={styles.nativeLearnBtn}
                   onPress={() => setShowDetail(true)}
-                  activeOpacity={0.8}
                 >
-                  <Text style={styles.learnMoreText}>Learn More</Text>
-                  <Feather name="arrow-right" size={14} color={COLORS.white} />
+                  <Text style={styles.nativeLearnText}>Learn More</Text>
+                  <Feather name="arrow-right" size={14} color="#fff" />
                 </TouchableOpacity>
               </LinearGradient>
             </Animated.View>
           )}
 
-          {!detected && (
-            <View style={styles.bottomBar}>
-              <Text style={styles.scanInstruction}>
-                {scanning ? "Scanning for artifacts..." : "Tap scan to discover AR artifacts"}
+          {scanState !== "detected" && (
+            <View style={styles.nativeBottomBar}>
+              <Text style={styles.nativeScanHint}>
+                {scanState === "scanning"
+                  ? "Scanning for artifacts…"
+                  : "Point at an AR marker and tap Scan"}
               </Text>
               <TouchableOpacity
-                style={[styles.scanBtn, scanning && styles.scanBtnActive]}
-                onPress={scanning ? undefined : handleStartScan}
+                style={[styles.nativeScanBtn, scanState === "scanning" && styles.nativeScanBtnActive]}
+                onPress={scanState === "idle" ? handleScan : undefined}
                 activeOpacity={0.85}
               >
-                {scanning ? (
-                  <View style={styles.scanBtnInner}>
-                    <Feather name="zap" size={24} color={COLORS.white} />
-                  </View>
-                ) : (
-                  <View style={styles.scanBtnInner}>
-                    <Feather name="camera" size={24} color={COLORS.white} />
-                  </View>
-                )}
+                <Feather name={scanState === "scanning" ? "zap" : "camera"} size={26} color="#fff" />
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </LinearGradient>
       </CameraView>
 
       <DetailModal
         visible={showDetail}
-        marker={selectedMarker}
+        marker={currentMarker}
         onClose={() => setShowDetail(false)}
-        onNext={handleReset}
+        onNext={() => { setShowDetail(false); handleReset(); }}
+      />
+    </View>
+  );
+}
+
+function WebARScreen({
+  scanState,
+  currentMarker,
+  markerIndex,
+  topPad,
+  scanLineAnim,
+  detectAnim,
+  pulseAnim,
+  showDetail,
+  onScan,
+  onReset,
+  onShowDetail,
+  onHideDetail,
+}: {
+  scanState: ScanState;
+  currentMarker: typeof AR_MARKERS[0];
+  markerIndex: number;
+  topPad: number;
+  scanLineAnim: Animated.Value;
+  detectAnim: Animated.Value;
+  pulseAnim: Animated.Value;
+  showDetail: boolean;
+  onScan: () => void;
+  onReset: () => void;
+  onShowDetail: () => void;
+  onHideDetail: () => void;
+}) {
+  const scanLineY = scanLineAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 220],
+  });
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[COLORS.primaryDark, COLORS.primary]}
+        style={[styles.webHeader, { paddingTop: topPad + 16 }]}
+      >
+        <Text style={styles.webHeaderTitle}>AR Scanner</Text>
+        <Text style={styles.webHeaderSub}>Discover Historical Artifacts</Text>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.webScroll}
+        contentContainerStyle={styles.webScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.webCameraBox}>
+          <View style={styles.webCameraInner}>
+            <View style={styles.webGrid}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <View key={`h${i}`} style={[styles.webGridLine, styles.webGridLineH, { top: `${(i + 1) * (100 / 7)}%` as any }]} />
+              ))}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <View key={`v${i}`} style={[styles.webGridLine, styles.webGridLineV, { left: `${(i + 1) * 20}%` as any }]} />
+              ))}
+            </View>
+
+            <View style={styles.webCornerTL} />
+            <View style={styles.webCornerTR} />
+            <View style={styles.webCornerBL} />
+            <View style={styles.webCornerBR} />
+
+            {scanState === "scanning" && (
+              <Animated.View
+                style={[styles.webScanLine, { transform: [{ translateY: scanLineY }] }]}
+              />
+            )}
+
+            {scanState === "idle" && (
+              <View style={styles.webIdleContent}>
+                <View style={styles.webIdleIcon}>
+                  <Feather name="camera" size={36} color="rgba(255,255,255,0.4)" />
+                </View>
+                <Text style={styles.webIdleText}>Tap Scan to detect an artifact</Text>
+              </View>
+            )}
+
+            {scanState === "scanning" && (
+              <View style={styles.webScanningContent}>
+                <Text style={styles.webScanningLabel}>SCANNING</Text>
+                <Text style={styles.webScanningText}>Looking for artifacts…</Text>
+              </View>
+            )}
+
+            {scanState === "detected" && (
+              <Animated.View
+                style={[
+                  styles.webDetectedOverlay,
+                  { opacity: detectAnim, transform: [{ scale: pulseAnim }] },
+                ]}
+              >
+                <LinearGradient
+                  colors={[COLORS.primaryDark + "E8", COLORS.primary + "E8"]}
+                  style={styles.webDetectedGrad}
+                >
+                  <View style={styles.webDetectedIconRing}>
+                    <Feather name={currentMarker.icon as any} size={32} color="#fff" />
+                  </View>
+                  <View style={styles.webDetectedBadgeRow}>
+                    <View style={styles.webDetectedBadge}>
+                      <Feather name="check-circle" size={12} color={COLORS.accent} />
+                      <Text style={styles.webDetectedBadgeText}>AR DETECTED</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.webDetectedTitle}>{currentMarker.title}</Text>
+                  <Text style={styles.webDetectedDesc}>{currentMarker.description}</Text>
+                </LinearGradient>
+              </Animated.View>
+            )}
+
+            <View style={styles.webArtifactCount}>
+              {AR_MARKERS.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.webDot,
+                    i === markerIndex % AR_MARKERS.length && styles.webDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.webScanControls}>
+            {scanState === "detected" ? (
+              <View style={styles.webDetectedActions}>
+                <TouchableOpacity style={styles.webLearnBtn} onPress={onShowDetail} activeOpacity={0.85}>
+                  <Feather name="book-open" size={18} color="#fff" />
+                  <Text style={styles.webLearnBtnText}>View Details</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.webNextBtn} onPress={onReset} activeOpacity={0.85}>
+                  <Feather name="refresh-cw" size={16} color={COLORS.primary} />
+                  <Text style={styles.webNextBtnText}>Scan Next</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.webScanBtn, scanState === "scanning" && styles.webScanBtnActive]}
+                onPress={scanState === "idle" ? onScan : undefined}
+                activeOpacity={0.9}
+              >
+                <Feather
+                  name={scanState === "scanning" ? "zap" : "camera"}
+                  size={22}
+                  color="#fff"
+                />
+                <Text style={styles.webScanBtnText}>
+                  {scanState === "scanning" ? "Scanning…" : "Scan Artifact"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {scanState === "detected" && (
+          <Animated.View style={[styles.webInfoCard, { opacity: detectAnim }]}>
+            <View style={styles.webInfoCardHeader}>
+              <View style={[styles.webInfoIconWrap, { backgroundColor: COLORS.primary + "20" }]}>
+                <Feather name={currentMarker.icon as any} size={22} color={COLORS.primary} />
+              </View>
+              <View style={styles.webInfoCardMeta}>
+                <Text style={styles.webInfoCardLabel}>AR ARTIFACT #{markerIndex % AR_MARKERS.length + 1}</Text>
+                <Text style={styles.webInfoCardTitle}>{currentMarker.title}</Text>
+              </View>
+            </View>
+            <Text style={styles.webInfoCardDesc}>{currentMarker.description}</Text>
+            <View style={styles.webInfoCardDivider} />
+            <Text style={styles.webInfoCardBody}>{currentMarker.details}</Text>
+          </Animated.View>
+        )}
+
+        <View style={styles.webHintBox}>
+          <Feather name="info" size={16} color={COLORS.textMuted} />
+          <Text style={styles.webHintText}>
+            In the mobile app, point your camera at AR markers at museums and historical
+            sites to discover digital artifacts overlaid in real-time.
+          </Text>
+        </View>
+
+        <View style={styles.webMarkerList}>
+          <Text style={styles.webMarkerListTitle}>AVAILABLE ARTIFACTS</Text>
+          {AR_MARKERS.map((m, i) => (
+            <View key={m.id} style={styles.webMarkerRow}>
+              <View style={[styles.webMarkerIcon, { backgroundColor: COLORS.primary + "18" }]}>
+                <Feather name={m.icon as any} size={16} color={COLORS.primary} />
+              </View>
+              <View style={styles.webMarkerInfo}>
+                <Text style={styles.webMarkerName}>{m.title}</Text>
+                <Text style={styles.webMarkerDesc} numberOfLines={1}>{m.description}</Text>
+              </View>
+              <View style={[styles.webMarkerStatus, { opacity: i < (markerIndex % AR_MARKERS.length + (scanState === "detected" ? 1 : 0)) ? 1 : 0.3 }]}>
+                <Feather name="check-circle" size={16} color={COLORS.success} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <DetailModal
+        visible={showDetail}
+        marker={currentMarker}
+        onClose={onHideDetail}
+        onNext={() => { onHideDetail(); onReset(); }}
       />
     </View>
   );
@@ -310,41 +481,53 @@ function DetailModal({
   onNext,
 }: {
   visible: boolean;
-  marker: typeof AR_MARKERS[0] | null;
+  marker: typeof AR_MARKERS[0];
   onClose: () => void;
   onNext: () => void;
 }) {
-  if (!marker) return null;
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={styles.modalContainer}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={styles.modalWrap}>
         <LinearGradient
           colors={[COLORS.primaryDark, COLORS.primary]}
-          style={styles.modalHeader}
+          style={styles.modalHead}
         >
-          <View style={styles.modalHeaderContent}>
-            <View style={styles.modalIcon}>
-              <Feather name={marker.icon as any} size={28} color={COLORS.white} />
-            </View>
-            <View style={styles.modalHeaderText}>
-              <Text style={styles.modalLabel}>AR ARTIFACT</Text>
-              <Text style={styles.modalTitle}>{marker.title}</Text>
-            </View>
-          </View>
-          <TouchableOpacity onPress={onClose} style={styles.modalClose}>
-            <Feather name="x" size={20} color={COLORS.white} />
+          <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
+            <Feather name="x" size={20} color="#fff" />
           </TouchableOpacity>
+          <View style={styles.modalIconRing}>
+            <Feather name={marker.icon as any} size={32} color="#fff" />
+          </View>
+          <View style={styles.modalBadge}>
+            <Feather name="zap" size={11} color={COLORS.accent} />
+            <Text style={styles.modalBadgeText}>AR ARTIFACT</Text>
+          </View>
+          <Text style={styles.modalHeadTitle}>{marker.title}</Text>
         </LinearGradient>
+
         <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-          <Text style={styles.modalDescription}>{marker.description}</Text>
+          <View style={styles.modalSection}>
+            <Text style={styles.modalSectionLabel}>DESCRIPTION</Text>
+            <Text style={styles.modalSectionText}>{marker.description}</Text>
+          </View>
           <View style={styles.modalDivider} />
-          <Text style={styles.modalDetailsTitle}>Historical Context</Text>
-          <Text style={styles.modalDetails}>{marker.details}</Text>
+          <View style={styles.modalSection}>
+            <Text style={styles.modalSectionLabel}>HISTORICAL CONTEXT</Text>
+            <Text style={styles.modalSectionText}>{marker.details}</Text>
+          </View>
+          <View style={styles.modalConnNote}>
+            <Feather name="link-2" size={14} color={COLORS.primary} />
+            <Text style={styles.modalConnNoteText}>
+              This artifact is part of the Pedro S. Tolentino digital heritage collection,
+              brought to life through augmented reality.
+            </Text>
+          </View>
         </ScrollView>
+
         <View style={styles.modalFooter}>
-          <TouchableOpacity style={styles.nextArtifactBtn} onPress={() => { onClose(); onNext(); }}>
-            <Text style={styles.nextArtifactText}>Scan Next Artifact</Text>
-            <Feather name="camera" size={16} color={COLORS.white} />
+          <TouchableOpacity style={styles.modalNextBtn} onPress={onNext} activeOpacity={0.9}>
+            <Feather name="camera" size={18} color="#fff" />
+            <Text style={styles.modalNextText}>Scan Next Artifact</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -353,402 +536,138 @@ function DetailModal({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.black,
+  container: { flex: 1, backgroundColor: "#0A0A0A" },
+  center: { justifyContent: "center", alignItems: "center", backgroundColor: COLORS.background },
+  loadText: { fontSize: 15, fontFamily: "Inter_400Regular", color: COLORS.textSecondary },
+
+  // Permission
+  permBox: { alignItems: "center", gap: 16, paddingHorizontal: 40 },
+  permIcon: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: COLORS.backgroundDark, justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: COLORS.borderLight,
   },
-  center: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.background,
-  },
-  camera: {
-    flex: 1,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "transparent",
-    justifyContent: "space-between",
-  },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  arTitle: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  resetBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scanFrame: {
-    width: 240,
-    height: 240,
-    alignSelf: "center",
-    position: "relative",
-    overflow: "hidden",
-  },
-  scanCornerTL: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: 40,
-    height: 40,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderColor: COLORS.accent,
-    borderRadius: 4,
-  },
-  scanCornerTR: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: 40,
-    height: 40,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderColor: COLORS.accent,
-    borderRadius: 4,
-  },
-  scanCornerBL: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    width: 40,
-    height: 40,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderColor: COLORS.accent,
-    borderRadius: 4,
-  },
-  scanCornerBR: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 40,
-    height: 40,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderColor: COLORS.accent,
-    borderRadius: 4,
-  },
-  scanLine: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: COLORS.accent,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-  },
-  detectedOverlay: {
-    marginHorizontal: 24,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  detectedGradient: {
-    padding: 24,
-    alignItems: "center",
-    gap: 12,
-  },
-  bottomBar: {
-    alignItems: "center",
-    paddingBottom: 40,
-    gap: 16,
-  },
-  scanInstruction: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  scanBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  scanBtnActive: {
-    backgroundColor: COLORS.accent,
-  },
-  scanBtnInner: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  detectedBadge: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.accentLight,
-    letterSpacing: 2,
-  },
-  detectedTitle: {
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.white,
-    textAlign: "center",
-  },
-  detectedDesc: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.8)",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  detectedIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  learnMoreBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    marginTop: 4,
-  },
-  learnMoreText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.white,
-  },
-  permissionContainer: {
-    alignItems: "center",
-    gap: 16,
-    paddingHorizontal: 40,
-  },
-  permissionTitle: {
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.text,
-    textAlign: "center",
-  },
-  permissionText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  permissionBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 8,
-  },
-  permissionBtnText: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.white,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.white,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 4,
-    fontStyle: "italic",
-  },
-  webFallback: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-    gap: 16,
-  },
-  webFallbackIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: COLORS.backgroundDark,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  webFallbackTitle: {
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.text,
-    textAlign: "center",
-  },
-  webFallbackText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  webFallbackHint: {
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-    color: COLORS.textMuted,
-    textAlign: "center",
-    fontStyle: "italic",
-  },
-  simulateBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 8,
-  },
-  simulateBtnText: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.white,
-  },
-  detectedCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    width: "100%",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 12,
-    marginTop: 8,
-  },
-  detectedHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  detectedLabel: {
-    fontSize: 10,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.primary,
-    letterSpacing: 1.5,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  modalHeader: {
-    padding: 24,
-    paddingTop: 48,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  modalHeaderContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    flex: 1,
-  },
-  modalIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalHeaderText: {
-    flex: 1,
-    gap: 4,
-  },
-  modalLabel: {
-    fontSize: 10,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.6)",
-    letterSpacing: 2,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.white,
-  },
-  modalClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalBody: {
-    flex: 1,
-    padding: 24,
-  },
-  modalDescription: {
-    fontSize: 16,
-    fontFamily: "Inter_500Medium",
-    color: COLORS.text,
-    lineHeight: 26,
-  },
-  modalDivider: {
-    height: 1,
-    backgroundColor: COLORS.borderLight,
-    marginVertical: 20,
-  },
-  modalDetailsTitle: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.primary,
-    letterSpacing: 1.5,
-    marginBottom: 12,
-  },
-  modalDetails: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    lineHeight: 24,
-  },
-  modalFooter: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  nextArtifactBtn: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 16,
-  },
-  nextArtifactText: {
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.white,
-  },
+  permTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: COLORS.text, textAlign: "center" },
+  permText: { fontSize: 14, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, textAlign: "center", lineHeight: 22 },
+  permBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 },
+  permBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+
+  // Native camera overlay
+  nativeTopBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14 },
+  nativeTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff" },
+  nativeResetBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  nativeResetText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  frameArea: { width: 240, height: 240, alignSelf: "center", marginTop: 60, position: "relative", overflow: "hidden" },
+  corner: { position: "absolute", width: 36, height: 36, borderColor: COLORS.accent, borderWidth: 3 },
+  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 4 },
+  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 4 },
+  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 4 },
+  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 4 },
+  nativeScanLine: { position: "absolute", left: 0, right: 0, height: 2, backgroundColor: COLORS.accent },
+  nativeDetect: { marginHorizontal: 24, borderRadius: 20, overflow: "hidden", marginTop: 20 },
+  nativeDetectGrad: { padding: 24, alignItems: "center", gap: 10 },
+  nativeDetectIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
+  nativeDetectBadge: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: COLORS.accent, letterSpacing: 2 },
+  nativeDetectTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center" },
+  nativeDetectDesc: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.8)", textAlign: "center", lineHeight: 20 },
+  nativeLearnBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24, marginTop: 4 },
+  nativeLearnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  nativeBottomBar: { alignItems: "center", paddingBottom: 48, gap: 16 },
+  nativeScanHint: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
+  nativeScanBtn: { width: 76, height: 76, borderRadius: 38, backgroundColor: COLORS.primary, justifyContent: "center", alignItems: "center", borderWidth: 3, borderColor: "rgba(255,255,255,0.3)" },
+  nativeScanBtnActive: { backgroundColor: COLORS.accent },
+
+  // Web layout
+  webHeader: { paddingHorizontal: 24, paddingBottom: 20 },
+  webHeaderTitle: { fontSize: 28, fontFamily: "Inter_700Bold", color: "#fff" },
+  webHeaderSub: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 4, fontStyle: "italic" },
+  webScroll: { flex: 1, backgroundColor: COLORS.background },
+  webScrollContent: { paddingBottom: 120 },
+
+  webCameraBox: { margin: 16, borderRadius: 20, overflow: "hidden", backgroundColor: "#111", borderWidth: 1, borderColor: "#333" },
+  webCameraInner: { height: 280, position: "relative", backgroundColor: "#0D1117", justifyContent: "center", alignItems: "center" },
+  webGrid: { ...StyleSheet.absoluteFillObject },
+  webGridLine: { position: "absolute", backgroundColor: "rgba(255,255,255,0.04)" },
+  webGridLineH: { left: 0, right: 0, height: 1 },
+  webGridLineV: { top: 0, bottom: 0, width: 1 },
+
+  webCornerTL: { position: "absolute", top: 16, left: 16, width: 28, height: 28, borderTopWidth: 2, borderLeftWidth: 2, borderColor: COLORS.accent, borderTopLeftRadius: 3 },
+  webCornerTR: { position: "absolute", top: 16, right: 16, width: 28, height: 28, borderTopWidth: 2, borderRightWidth: 2, borderColor: COLORS.accent, borderTopRightRadius: 3 },
+  webCornerBL: { position: "absolute", bottom: 16, left: 16, width: 28, height: 28, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: COLORS.accent, borderBottomLeftRadius: 3 },
+  webCornerBR: { position: "absolute", bottom: 16, right: 16, width: 28, height: 28, borderBottomWidth: 2, borderRightWidth: 2, borderColor: COLORS.accent, borderBottomRightRadius: 3 },
+
+  webScanLine: { position: "absolute", left: 16, right: 16, height: 2, backgroundColor: COLORS.accent, shadowColor: COLORS.accent, shadowRadius: 8, shadowOpacity: 0.9, shadowOffset: { width: 0, height: 0 } },
+
+  webIdleContent: { alignItems: "center", gap: 10 },
+  webIdleIcon: { width: 72, height: 72, borderRadius: 36, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center" },
+  webIdleText: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
+
+  webScanningContent: { alignItems: "center", gap: 8 },
+  webScanningLabel: { fontSize: 11, fontFamily: "Inter_700Bold", color: COLORS.accent, letterSpacing: 3 },
+  webScanningText: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.5)" },
+
+  webDetectedOverlay: { ...StyleSheet.absoluteFillObject },
+  webDetectedGrad: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 24 },
+  webDetectedIconRing: { width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  webDetectedBadgeRow: { flexDirection: "row" },
+  webDetectedBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  webDetectedBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold", color: COLORS.accent, letterSpacing: 1.5 },
+  webDetectedTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center" },
+  webDetectedDesc: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.8)", textAlign: "center", lineHeight: 20 },
+
+  webArtifactCount: { position: "absolute", bottom: 12, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 6 },
+  webDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.25)" },
+  webDotActive: { backgroundColor: COLORS.accent, width: 18 },
+
+  webScanControls: { padding: 16, borderTopWidth: 1, borderTopColor: "#222" },
+  webScanBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 14 },
+  webScanBtnActive: { backgroundColor: COLORS.accent },
+  webScanBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+
+  webDetectedActions: { flexDirection: "row", gap: 10 },
+  webLearnBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 14 },
+  webLearnBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  webNextBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.primary, backgroundColor: COLORS.primary + "10" },
+  webNextBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: COLORS.primary },
+
+  webInfoCard: { marginHorizontal: 16, marginTop: 4, backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: COLORS.borderLight, gap: 12 },
+  webInfoCardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  webInfoIconWrap: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
+  webInfoCardMeta: { flex: 1, gap: 2 },
+  webInfoCardLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: COLORS.primary, letterSpacing: 1.5 },
+  webInfoCardTitle: { fontSize: 17, fontFamily: "Inter_700Bold", color: COLORS.text },
+  webInfoCardDesc: { fontSize: 14, fontFamily: "Inter_500Medium", color: COLORS.textSecondary, lineHeight: 22 },
+  webInfoCardDivider: { height: 1, backgroundColor: COLORS.borderLight },
+  webInfoCardBody: { fontSize: 14, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 22 },
+
+  webHintBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginHorizontal: 16, marginTop: 16, padding: 14, backgroundColor: COLORS.backgroundDark, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderLight },
+  webHintText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", color: COLORS.textMuted, lineHeight: 18 },
+
+  webMarkerList: { marginHorizontal: 16, marginTop: 16, gap: 10 },
+  webMarkerListTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: COLORS.primary, letterSpacing: 2, marginBottom: 4 },
+  webMarkerRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.borderLight },
+  webMarkerIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: "center", alignItems: "center" },
+  webMarkerInfo: { flex: 1, gap: 2 },
+  webMarkerName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: COLORS.text },
+  webMarkerDesc: { fontSize: 12, fontFamily: "Inter_400Regular", color: COLORS.textMuted },
+  webMarkerStatus: {},
+
+  // Detail modal
+  modalWrap: { flex: 1, backgroundColor: COLORS.background },
+  modalHead: { padding: 24, paddingTop: 48, alignItems: "center", gap: 10 },
+  modalCloseBtn: { alignSelf: "flex-end", width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
+  modalIconRing: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  modalBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  modalBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold", color: COLORS.accent, letterSpacing: 1.5 },
+  modalHeadTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center" },
+  modalBody: { flex: 1, padding: 24 },
+  modalSection: { gap: 8 },
+  modalSectionLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: COLORS.primary, letterSpacing: 2 },
+  modalSectionText: { fontSize: 15, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 24 },
+  modalDivider: { height: 1, backgroundColor: COLORS.borderLight, marginVertical: 20 },
+  modalConnNote: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 20, padding: 16, backgroundColor: COLORS.surfaceWarm, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderLight },
+  modalConnNoteText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 20 },
+  modalFooter: { padding: 24, paddingBottom: 40 },
+  modalNextBtn: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 16 },
+  modalNextText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });
