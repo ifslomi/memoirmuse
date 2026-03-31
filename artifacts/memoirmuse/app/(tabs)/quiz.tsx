@@ -307,7 +307,7 @@ export default function QuizScreen() {
       <View style={[styles.topBar, { paddingTop: topPad + 10 }]}>
         <View style={styles.topLeft}>
           <View style={styles.avatarRing}>
-            <Feather name="user" size={16} color={COLORS.primaryContainer} />
+            <Feather name="user" size={18} color={COLORS.onSurface} />
           </View>
           <View>
             <Text style={styles.topTitle}>MEMOIRMUSE</Text>
@@ -344,7 +344,7 @@ export default function QuizScreen() {
 
             <Text style={styles.heroTitle}>MemoirMuse Challenge</Text>
             <Text style={styles.heroSub}>
-              Test your knowledge of Pedro S. Tolentino's life, works, and legacy to earn XP and unlock Digital Relic Badges.
+              Test your knowledge of Pedro S. Tolentino's life, works, and legacy to earn XP and unlock Digital Artifact Badges.
             </Text>
 
             <TouchableOpacity style={styles.startBtn} onPress={handleStart} activeOpacity={0.85}>
@@ -430,14 +430,14 @@ const styles = StyleSheet.create({
   },
   topLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatarRing: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    borderColor: COLORS.primaryContainer,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryContainer + "60",
+    backgroundColor: COLORS.surfaceContainerHigh,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.surfaceContainerHigh,
   },
   topTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "#00e5ff", letterSpacing: 1.5 },
   topSub: { fontSize: 9, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 1 },

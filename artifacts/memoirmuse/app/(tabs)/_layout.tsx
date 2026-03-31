@@ -95,13 +95,13 @@ function CenterButton({
   onPress: () => void;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0.5)).current;
+  const glowOpacity = useRef(new Animated.Value(0.1)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glowOpacity, { toValue: 0.9, duration: 1200, useNativeDriver: true }),
-        Animated.timing(glowOpacity, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: 0.18, duration: 1400, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: 0.06, duration: 1400, useNativeDriver: true }),
       ])
     ).start();
   }, []);
@@ -280,6 +280,6 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope_700Bold",
     letterSpacing: 0.3,
     textTransform: "uppercase",
-    marginTop: -10,
+    marginTop: 2,
   },
 });

@@ -8,6 +8,7 @@ import {
   Platform,
   Animated,
   Alert,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -32,6 +33,9 @@ const LEADERS = [
   { rank: 42, name: "You", sub: "UNREGISTERED HISTORIAN", xp: "1.2k", isYou: true },
   { rank: 43, name: "Marcus Aurel", sub: "SEEKER", xp: "1.1k", isYou: false },
 ];
+
+const { width: SCREEN_W } = Dimensions.get("window");
+const ARTIFACT_CARD_W = Math.floor((SCREEN_W - 32 - 20) / 3);
 
 const LEVEL = 12;
 const CURRENT_XP = 1250;
@@ -100,10 +104,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.topLeft}>
           <View style={styles.avatarRing}>
-            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.avatarInner}>
-              <Feather name="user" size={16} color={COLORS.primaryContainer} />
-            </View>
+            <Feather name="user" size={18} color={COLORS.onSurface} />
           </View>
           <View>
             <Text style={styles.topTitle}>MEMOIRMUSE</Text>
@@ -191,29 +192,29 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <AnimatedCard delay={130} style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>Relic Collection</Text>
+            <Text style={styles.sectionTitle}>Artifact Collection</Text>
             <TouchableOpacity>
               <Text style={styles.viewAll}>View All</Text>
             </TouchableOpacity>
           </AnimatedCard>
           <View style={styles.badgeGrid}>
             {BADGES.map((b, i) => (
-              <AnimatedCard key={b.id} delay={180 + i * 50}>
+              <AnimatedCard key={b.id} delay={180 + i * 50} style={{ width: ARTIFACT_CARD_W }}>
                 <View
                   style={[
                     styles.badgeCard,
                     b.unlocked ? styles.badgeCardUnlocked : styles.badgeCardLocked,
                   ]}
                 >
-                  <View style={[styles.badgeIconRing, { backgroundColor: b.unlocked ? COLORS.tertiaryContainer + "15" : COLORS.surfaceContainerHighest }]}>
+                  <View style={[styles.badgeIconRing, { backgroundColor: b.unlocked ? COLORS.tertiaryContainer + "18" : COLORS.surfaceContainerHighest }]}>
                     <Feather
                       name={b.icon}
-                      size={26}
+                      size={22}
                       color={b.unlocked ? COLORS.tertiaryFixedDim : COLORS.onSurfaceVariant}
                     />
                   </View>
-                  <Text style={[styles.badgeName, !b.unlocked && { color: COLORS.onSurfaceVariant }]}>{b.name}</Text>
-                  <Text style={styles.badgeEra}>{b.era}</Text>
+                  <Text style={[styles.badgeName, !b.unlocked && { color: COLORS.onSurfaceVariant }]} numberOfLines={2}>{b.name}</Text>
+                  <Text style={styles.badgeEra} numberOfLines={1}>{b.era}</Text>
                 </View>
               </AnimatedCard>
             ))}
@@ -311,18 +312,11 @@ const styles = StyleSheet.create({
   },
   topLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatarRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    padding: 2,
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  avatarInner: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryContainer + "60",
     backgroundColor: COLORS.surfaceContainerHigh,
     justifyContent: "center",
     alignItems: "center",
@@ -416,11 +410,12 @@ const styles = StyleSheet.create({
 
   badgeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   badgeCard: {
-    width: "47%",
-    padding: 18,
-    borderRadius: 18,
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderRadius: 16,
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     borderWidth: 1,
   },
   badgeCardUnlocked: {
@@ -433,9 +428,9 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     opacity: 0.6,
   },
-  badgeIconRing: { width: 60, height: 60, borderRadius: 30, justifyContent: "center", alignItems: "center" },
-  badgeName: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
-  badgeEra: { fontSize: 9, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 1 },
+  badgeIconRing: { width: 50, height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center" },
+  badgeName: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
+  badgeEra: { fontSize: 8, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" },
 
   leaderboard: {
     backgroundColor: COLORS.surfaceContainerLow,

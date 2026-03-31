@@ -26,7 +26,7 @@ type ScanState = "idle" | "scanning" | "detected";
 const ARTIFACT_DATA = AR_MARKERS.map((m, i) => ({
   ...m,
   era: ["CIRCA 1902 • THEATRICAL ERA", "CIRCA 1896 • REVOLUTIONARY", "CIRCA 1910 • CULTURAL"][i % 3],
-  rarity: ["RARE GRADE", "EPIC RELIC", "COMMON GRADE"][i % 3],
+  rarity: ["RARE GRADE", "EPIC ARTIFACT", "COMMON GRADE"][i % 3],
   rarityColor: [COLORS.tertiaryFixedDim, COLORS.primaryContainer, COLORS.onSurfaceVariant][i % 3],
   xp: ["+350 XP", "+500 XP", "+150 XP"][i % 3],
 }));
@@ -349,7 +349,7 @@ export default function ARScreen() {
       <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
         <View style={styles.topLeft}>
           <View style={styles.avatarRing}>
-            <Feather name="user" size={16} color={COLORS.primaryContainer} />
+            <Feather name="user" size={18} color={COLORS.onSurface} />
           </View>
           <View>
             <Text style={styles.topTitle}>MEMOIRMUSE</Text>
@@ -415,7 +415,7 @@ export default function ARScreen() {
         {[
           { icon: "sun" as const, label: "Hint", color: COLORS.tertiaryFixedDim },
           { icon: "zap" as const, label: "Flash", color: COLORS.primaryContainer },
-          { icon: "archive" as const, label: "Relics", color: COLORS.onSurface },
+          { icon: "archive" as const, label: "Artifacts", color: COLORS.onSurface },
         ].map((btn) => (
           <TouchableOpacity key={btn.label} style={styles.sideBtn} activeOpacity={0.8}>
             <Feather name={btn.icon} size={18} color={btn.color} />
@@ -563,8 +563,8 @@ const styles = StyleSheet.create({
   },
   topLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   avatarRing: {
-    width: 42, height: 42, borderRadius: 21,
-    borderWidth: 2, borderColor: COLORS.primaryContainer,
+    width: 40, height: 40, borderRadius: 20,
+    borderWidth: 1.5, borderColor: COLORS.primaryContainer + "60",
     justifyContent: "center", alignItems: "center",
     backgroundColor: COLORS.surfaceContainerHigh,
   },

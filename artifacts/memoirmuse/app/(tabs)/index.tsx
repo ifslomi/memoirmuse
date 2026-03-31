@@ -125,10 +125,7 @@ export default function HomeScreen() {
       <Animated.View style={[styles.topBar, { paddingTop: topPad + 10, opacity: headerAnim }]}>
         <View style={styles.topLeft}>
           <View style={styles.avatarRing}>
-            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-            <View style={styles.avatarInner}>
-              <Feather name="user" size={16} color={COLORS.primaryContainer} />
-            </View>
+            <Feather name="user" size={18} color={COLORS.onSurface} />
           </View>
           <View>
             <Text style={styles.appName}>MEMOIRMUSE</Text>
@@ -282,17 +279,11 @@ const styles = StyleSheet.create({
   },
   topLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatarRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 2,
-  },
-  avatarInner: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryContainer + "60",
     backgroundColor: COLORS.surfaceContainerHigh,
     justifyContent: "center",
     alignItems: "center",
