@@ -40,7 +40,7 @@ export default function TimelineScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: Platform.OS === "web" ? 120 : 100 },
+          { paddingBottom: 120 },
         ]}
       >
         <View style={styles.timeline}>

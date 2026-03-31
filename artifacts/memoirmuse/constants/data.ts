@@ -337,5 +337,5 @@ export const BADGES = [
   { id: "1", name: "Historia Novice", minScore: 0, icon: "award" },
   { id: "2", name: "Heritage Seeker", minScore: 5, icon: "star" },
   { id: "3", name: "Historia Scholar", minScore: 8, icon: "bookmark" },
-  { id: "4", name: "Tolentino Alagad", minScore: 10, icon: "crown" },
+  { id: "4", name: "Tolentino Alagad", minScore: 10, icon: "award" },
 ];

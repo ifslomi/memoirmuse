@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Platform,
   ScrollView,
-  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -16,6 +15,8 @@ import COLORS from "@/constants/colors";
 import { QUIZ_QUESTIONS, BADGES } from "@/constants/data";
 
 type Phase = "intro" | "playing" | "result";
+
+const TAB_BOTTOM = Platform.OS === "web" ? 120 : 120;
 
 export default function QuizScreen() {
   const [phase, setPhase] = useState<Phase>("intro");
@@ -78,19 +79,23 @@ export default function QuizScreen() {
         style={styles.container}
         contentContainerStyle={[
           styles.introContent,
-          { paddingTop: topPad, paddingBottom: Platform.OS === "web" ? 120 : 100 },
+          { paddingTop: topPad, paddingBottom: TAB_BOTTOM },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={[COLORS.success, "#2E6040"]}
+          colors={[COLORS.primaryDark, COLORS.primary]}
           style={styles.introHero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
           <View style={styles.introIconCircle}>
             <Feather name="help-circle" size={40} color={COLORS.white} />
           </View>
           <Text style={styles.introTitle}>Historia Quiz</Text>
           <Text style={styles.introSubtitle}>Test Your Knowledge</Text>
+          <View style={styles.introDivider} />
+          <Text style={styles.introTagline}>{total} questions · Heritage of Tolentino</Text>
         </LinearGradient>
 
         <View style={styles.introBody}>
@@ -115,6 +120,7 @@ export default function QuizScreen() {
                       : `Score ${badge.minScore}+ out of ${total}`}
                   </Text>
                 </View>
+                <Feather name="chevron-right" size={14} color={COLORS.borderLight} />
               </View>
             ))}
           </View>
@@ -124,8 +130,8 @@ export default function QuizScreen() {
             onPress={handleStart}
             activeOpacity={0.85}
           >
+            <Feather name="play" size={18} color={COLORS.white} />
             <Text style={styles.startBtnText}>Start Quiz</Text>
-            <Feather name="arrow-right" size={18} color={COLORS.white} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -141,13 +147,15 @@ export default function QuizScreen() {
         style={styles.container}
         contentContainerStyle={[
           styles.introContent,
-          { paddingTop: topPad, paddingBottom: Platform.OS === "web" ? 120 : 100 },
+          { paddingTop: topPad, paddingBottom: TAB_BOTTOM },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={[COLORS.success, "#2E6040"]}
+          colors={[COLORS.primaryDark, COLORS.primary]}
           style={styles.introHero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
           <View style={styles.resultBadgeCircle}>
             <Feather name={badge.icon as any} size={40} color={COLORS.accent} />
@@ -193,13 +201,17 @@ export default function QuizScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <LinearGradient
-        colors={[COLORS.success, "#2E6040"]}
+        colors={[COLORS.primaryDark, COLORS.primary]}
         style={styles.quizHeader}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
         <View style={styles.quizProgress}>
-          <Text style={styles.quizProgressText}>
-            {currentIndex + 1} / {total}
-          </Text>
+          <View style={styles.quizProgressLabelRow}>
+            <Text style={styles.quizProgressText}>
+              Question {currentIndex + 1} of {total}
+            </Text>
+          </View>
           <View style={styles.quizProgressBarBg}>
             <View
               style={[
@@ -211,7 +223,7 @@ export default function QuizScreen() {
         </View>
         <View style={styles.scoreChip}>
           <Feather name="star" size={12} color={COLORS.accent} />
-          <Text style={styles.scoreChipText}>{score} pts</Text>
+          <Text style={styles.scoreChipText}>{score}</Text>
         </View>
       </LinearGradient>
 
@@ -219,43 +231,48 @@ export default function QuizScreen() {
         style={styles.quizBody}
         contentContainerStyle={[
           styles.quizBodyContent,
-          { paddingBottom: Platform.OS === "web" ? 100 : 80 },
+          { paddingBottom: TAB_BOTTOM },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.questionCard}>
-          <Text style={styles.questionNumber}>Question {currentIndex + 1}</Text>
+          <View style={styles.questionNumberRow}>
+            <View style={styles.questionNumberBadge}>
+              <Text style={styles.questionNumberText}>Q{currentIndex + 1}</Text>
+            </View>
+          </View>
           <Text style={styles.questionText}>{current.question}</Text>
         </View>
 
         <View style={styles.optionsContainer}>
           {current.options.map((option, idx) => {
-            let optionStyle = styles.optionBtn;
+            let style = styles.optionBtn;
             let textStyle = styles.optionText;
             let icon: "circle" | "check-circle" | "x-circle" = "circle";
-            let iconColor = COLORS.textMuted;
+            let iconColor = COLORS.border;
 
             if (answered) {
               if (idx === current.correct) {
-                optionStyle = { ...styles.optionBtn, ...styles.optionCorrect };
-                textStyle = { ...styles.optionText, ...styles.optionTextSelected };
+                style = { ...styles.optionBtn, ...styles.optionCorrect };
+                textStyle = { ...styles.optionText, color: COLORS.text };
                 icon = "check-circle";
                 iconColor = COLORS.success;
               } else if (idx === selected && idx !== current.correct) {
-                optionStyle = { ...styles.optionBtn, ...styles.optionWrong };
-                textStyle = { ...styles.optionText, ...styles.optionTextWrong };
+                style = { ...styles.optionBtn, ...styles.optionWrong };
+                textStyle = { ...styles.optionText, color: COLORS.error };
                 icon = "x-circle";
                 iconColor = COLORS.error;
               }
             } else if (idx === selected) {
-              optionStyle = { ...styles.optionBtn, ...styles.optionSelected };
-              textStyle = { ...styles.optionText, ...styles.optionTextSelected };
+              style = { ...styles.optionBtn, ...styles.optionSelected };
+              textStyle = { ...styles.optionText, color: COLORS.primary };
+              iconColor = COLORS.primary;
             }
 
             return (
               <TouchableOpacity
                 key={idx}
-                style={optionStyle}
+                style={style}
                 onPress={() => handleAnswer(idx)}
                 activeOpacity={answered ? 1 : 0.75}
               >
@@ -314,17 +331,18 @@ const styles = StyleSheet.create({
   },
   introHero: {
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: 44,
     paddingHorizontal: 24,
-    gap: 12,
+    gap: 10,
   },
   introIconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 4,
   },
   introTitle: {
     fontSize: 30,
@@ -332,10 +350,22 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   introSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.75)",
     fontStyle: "italic",
+  },
+  introDivider: {
+    width: 40,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    marginVertical: 4,
+  },
+  introTagline: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "rgba(255,255,255,0.55)",
+    letterSpacing: 0.5,
   },
   introBody: {
     padding: 24,
@@ -357,7 +387,7 @@ const styles = StyleSheet.create({
   },
   badgePreviewTitle: {
     fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     color: COLORS.primary,
     letterSpacing: 2,
     marginBottom: 4,
@@ -387,14 +417,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     color: COLORS.textMuted,
-    marginTop: 2,
+    marginTop: 1,
   },
   startBtn: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
-    backgroundColor: COLORS.success,
+    backgroundColor: COLORS.primary,
     paddingVertical: 16,
     borderRadius: 16,
   },
@@ -404,12 +434,13 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   resultBadgeCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 4,
   },
   resultBadgeName: {
     fontSize: 22,
@@ -420,15 +451,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "center",
-    gap: 4,
+    gap: 6,
   },
   scoreNumber: {
-    fontSize: 56,
+    fontSize: 60,
     fontFamily: "Inter_700Bold",
-    color: COLORS.success,
+    color: COLORS.primary,
   },
   scoreTotal: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: "Inter_400Regular",
     color: COLORS.textMuted,
   },
@@ -447,7 +478,7 @@ const styles = StyleSheet.create({
   },
   resultBarFill: {
     height: "100%",
-    backgroundColor: COLORS.success,
+    backgroundColor: COLORS.primary,
     borderRadius: 4,
   },
   resultMessage: {
@@ -461,17 +492,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
     gap: 16,
   },
   quizProgress: {
     flex: 1,
-    gap: 8,
+    gap: 10,
+  },
+  quizProgressLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   quizProgressText: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.75)",
   },
   quizProgressBarBg: {
     height: 4,
@@ -487,14 +523,14 @@ const styles = StyleSheet.create({
   scoreChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: 5,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   scoreChipText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
     color: COLORS.white,
   },
@@ -503,12 +539,12 @@ const styles = StyleSheet.create({
   },
   quizBodyContent: {
     padding: 20,
-    gap: 16,
+    gap: 14,
   },
   questionCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 20,
-    padding: 24,
+    padding: 22,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
     shadowColor: COLORS.cardShadow,
@@ -516,19 +552,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 2,
-    gap: 12,
+    gap: 14,
   },
-  questionNumber: {
+  questionNumberRow: {
+    flexDirection: "row",
+  },
+  questionNumberBadge: {
+    backgroundColor: COLORS.primary + "15",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  questionNumberText: {
     fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.success,
-    letterSpacing: 1.5,
+    fontFamily: "Inter_700Bold",
+    color: COLORS.primary,
+    letterSpacing: 1,
   },
   questionText: {
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: "Inter_600SemiBold",
     color: COLORS.text,
-    lineHeight: 28,
+    lineHeight: 26,
   },
   optionsContainer: {
     gap: 10,
@@ -544,16 +589,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderLight,
   },
   optionSelected: {
-    borderColor: COLORS.success,
-    backgroundColor: COLORS.success + "10",
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary + "08",
   },
   optionCorrect: {
     borderColor: COLORS.success,
-    backgroundColor: COLORS.success + "15",
+    backgroundColor: COLORS.success + "12",
   },
   optionWrong: {
     borderColor: COLORS.error,
-    backgroundColor: COLORS.error + "10",
+    backgroundColor: COLORS.error + "08",
   },
   optionText: {
     flex: 1,
@@ -561,14 +606,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: COLORS.text,
     lineHeight: 22,
-  },
-  optionTextSelected: {
-    fontFamily: "Inter_500Medium",
-    color: COLORS.text,
-  },
-  optionTextWrong: {
-    fontFamily: "Inter_500Medium",
-    color: COLORS.error,
   },
   explanationCard: {
     backgroundColor: COLORS.surfaceWarm,

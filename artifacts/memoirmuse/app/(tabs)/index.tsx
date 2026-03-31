@@ -30,7 +30,7 @@ const FEATURES = [
   {
     id: "ar",
     label: "AR Scanner",
-    description: "Reveal 3D holographic artifacts",
+    description: "Reveal holographic artifacts",
     icon: "camera" as const,
     route: "/(tabs)/ar" as const,
     gradient: [COLORS.accent, "#7A5A14"] as [string, string],
@@ -45,11 +45,11 @@ const FEATURES = [
   },
   {
     id: "quiz",
-    label: "Quiz",
+    label: "Historia Quiz",
     description: "Test your heritage knowledge",
     icon: "help-circle" as const,
     route: "/(tabs)/quiz" as const,
-    gradient: [COLORS.success, "#2E6040"] as [string, string],
+    gradient: [COLORS.primaryLight, COLORS.primaryDark] as [string, string],
   },
   {
     id: "map",
@@ -61,7 +61,7 @@ const FEATURES = [
   },
 ];
 
-function AnimatedCard({
+function FeatureCard({
   item,
   index,
   onPress,
@@ -73,20 +73,20 @@ function AnimatedCard({
   wide?: boolean;
 }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(24)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
-        delay: 200 + index * 80,
+        duration: 380,
+        delay: 200 + index * 70,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 400,
-        delay: 200 + index * 80,
+        duration: 380,
+        delay: 200 + index * 70,
         useNativeDriver: true,
       }),
     ]).start();
@@ -95,29 +95,29 @@ function AnimatedCard({
   return (
     <Animated.View
       style={[
-        wide ? styles.featureCardWide : styles.featureCard,
+        wide ? styles.cardWide : styles.cardHalf,
         { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
       ]}
     >
       <TouchableOpacity
-        style={styles.featureCardInner}
+        style={styles.cardInner}
         onPress={() => onPress(item.route)}
-        activeOpacity={0.85}
+        activeOpacity={0.88}
       >
         <LinearGradient
           colors={item.gradient}
-          style={styles.featureGrad}
+          style={styles.cardGrad}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <View style={styles.featureIconBox}>
-            <Feather name={item.icon} size={26} color="#fff" />
+          <View style={styles.cardIconBox}>
+            <Feather name={item.icon} size={24} color="#fff" />
           </View>
-          <View style={styles.featureLabelWrap}>
-            <Text style={styles.featureLabel}>{item.label}</Text>
-            <Text style={styles.featureDesc}>{item.description}</Text>
+          <View style={styles.cardTextWrap}>
+            <Text style={styles.cardLabel}>{item.label}</Text>
+            <Text style={styles.cardDesc} numberOfLines={1}>{item.description}</Text>
           </View>
-          <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.55)" />
+          <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.5)" />
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
@@ -132,7 +132,7 @@ export default function HomeScreen() {
   const statsAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.stagger(120, [
+    Animated.stagger(100, [
       Animated.timing(heroAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.timing(statsAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
     ]).start();
@@ -149,7 +149,7 @@ export default function HomeScreen() {
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: 160 }]}
+      contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: 130 }]}
     >
       <LinearGradient
         colors={[COLORS.primaryDark, COLORS.primary, "#A84040"]}
@@ -163,10 +163,10 @@ export default function HomeScreen() {
           <Text style={styles.heroName}>Pedro S.{"\n"}Tolentino</Text>
           <Text style={styles.heroTagline}>Father of Tagalog Zarzuela</Text>
           <View style={styles.heroMeta}>
-            <Feather name="calendar" size={12} color="rgba(255,255,255,0.6)" />
+            <Feather name="calendar" size={12} color="rgba(255,255,255,0.55)" />
             <Text style={styles.heroMetaText}>1858 – 1913</Text>
             <View style={styles.heroMetaDot} />
-            <Feather name="map-pin" size={12} color="rgba(255,255,255,0.6)" />
+            <Feather name="map-pin" size={12} color="rgba(255,255,255,0.55)" />
             <Text style={styles.heroMetaText}>Marikina</Text>
           </View>
         </Animated.View>
@@ -207,10 +207,9 @@ export default function HomeScreen() {
 
       <View style={styles.featuresSection}>
         <Text style={styles.sectionLabel}>EXPLORE</Text>
-
         <View style={styles.featuresGrid}>
-          {FEATURES.map((item, index) => (
-            <AnimatedCard
+          {FEATURES.slice(0, 2).map((item, index) => (
+            <FeatureCard
               key={item.id}
               item={item}
               index={index}
@@ -218,6 +217,16 @@ export default function HomeScreen() {
               wide={index === 0}
             />
           ))}
+          <View style={styles.featuresRow}>
+            {FEATURES.slice(2).map((item, index) => (
+              <FeatureCard
+                key={item.id}
+                item={item}
+                index={index + 2}
+                onPress={handlePress}
+              />
+            ))}
+          </View>
         </View>
       </View>
 
@@ -234,7 +243,7 @@ export default function HomeScreen() {
   );
 }
 
-const CARD_W = (width - 56) / 2;
+const CARD_W = (width - 56) / 3;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
@@ -243,79 +252,168 @@ const styles = StyleSheet.create({
   hero: {
     paddingHorizontal: 28,
     paddingTop: 48,
-    paddingBottom: 40,
+    paddingBottom: 44,
   },
   heroInner: { alignItems: "center", gap: 10 },
-  heroApp: { fontSize: 11, fontFamily: "Inter_700Bold", color: "rgba(255,255,255,0.55)", letterSpacing: 4 },
-  heroDivLine: { width: 48, height: 1, backgroundColor: "rgba(255,255,255,0.3)" },
-  heroName: { fontSize: 44, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center", lineHeight: 50 },
-  heroTagline: { fontSize: 15, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.8)", fontStyle: "italic", textAlign: "center" },
-  heroMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
-  heroMetaText: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.65)" },
-  heroMetaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: "rgba(255,255,255,0.35)" },
+  heroApp: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 4,
+  },
+  heroDivLine: {
+    width: 40,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  heroName: {
+    fontSize: 44,
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
+    textAlign: "center",
+    lineHeight: 50,
+  },
+  heroTagline: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.8)",
+    fontStyle: "italic",
+    textAlign: "center",
+  },
+  heroMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  heroMetaText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.6)",
+  },
+  heroMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
 
   statsRow: {
     flexDirection: "row",
     paddingHorizontal: 28,
-    paddingVertical: 24,
+    paddingVertical: 22,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
   },
-  statItem: { flex: 1, alignItems: "center", gap: 5 },
-  statValue: { fontSize: 24, fontFamily: "Inter_700Bold", color: COLORS.primary },
-  statLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: COLORS.textMuted, textAlign: "center" },
-  statSep: { width: 1, backgroundColor: COLORS.borderLight, marginHorizontal: 8 },
+  statItem: { flex: 1, alignItems: "center", gap: 4 },
+  statValue: {
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
+    color: COLORS.primary,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    color: COLORS.textMuted,
+    textAlign: "center",
+  },
+  statSep: {
+    width: 1,
+    backgroundColor: COLORS.borderLight,
+    marginHorizontal: 8,
+  },
 
   bioWrap: {
     paddingHorizontal: 28,
-    paddingVertical: 28,
+    paddingVertical: 26,
     backgroundColor: COLORS.surfaceWarm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderLight,
     gap: 12,
   },
-  sectionLabel: { fontSize: 11, fontFamily: "Inter_700Bold", color: COLORS.primary, letterSpacing: 2.5 },
-  bioText: { fontSize: 15, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 26 },
-  bioLink: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  bioLinkText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: COLORS.primary },
-
-  featuresSection: { paddingHorizontal: 20, paddingTop: 28, gap: 16 },
-  featuresGrid: { gap: 12 },
-
-  featureCardWide: { width: "100%" },
-  featureCard: { width: CARD_W },
-  featureCardInner: { borderRadius: 18, overflow: "hidden" },
-
-  featureGrad: {
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    color: COLORS.primary,
+    letterSpacing: 2.5,
+  },
+  bioText: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    color: COLORS.textSecondary,
+    lineHeight: 26,
+  },
+  bioLink: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    padding: 20,
-    minHeight: 90,
+    gap: 6,
+    marginTop: 2,
   },
-  featureIconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.2)",
+  bioLinkText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: COLORS.primary,
+  },
+
+  featuresSection: {
+    paddingHorizontal: 20,
+    paddingTop: 26,
+    paddingBottom: 4,
+    gap: 14,
+  },
+  featuresGrid: { gap: 10 },
+  featuresRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  cardWide: { width: "100%" },
+  cardHalf: { flex: 1, minWidth: CARD_W },
+  cardInner: { borderRadius: 18, overflow: "hidden" },
+
+  cardGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 18,
+    minHeight: 82,
+  },
+  cardIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
   },
-  featureLabelWrap: { flex: 1, gap: 3 },
-  featureLabel: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
-  featureDesc: { fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.75)" },
+  cardTextWrap: { flex: 1, gap: 3 },
+  cardLabel: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    color: "#fff",
+  },
+  cardDesc: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    color: "rgba(255,255,255,0.72)",
+  },
 
   quoteWrap: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 16,
     paddingHorizontal: 28,
-    paddingTop: 32,
+    paddingTop: 28,
     paddingBottom: 8,
   },
-  quoteAccent: { width: 3, minHeight: 64, backgroundColor: COLORS.accent, borderRadius: 2 },
+  quoteAccent: {
+    width: 3,
+    minHeight: 60,
+    backgroundColor: COLORS.accent,
+    borderRadius: 2,
+  },
   quoteBody: { flex: 1, gap: 8 },
   quoteText: {
     fontSize: 14,

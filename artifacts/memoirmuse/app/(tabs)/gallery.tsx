@@ -20,15 +20,6 @@ import { GALLERY_ITEMS, GalleryItem } from "@/constants/data";
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 48) / 2;
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Portrait: COLORS.primary,
-  Manuscript: COLORS.accent,
-  Theater: "#4A7A8C",
-  Document: COLORS.success,
-  History: "#6B4A8C",
-  Movement: "#8C4A4A",
-};
-
 const GALLERY_GRADIENTS: [string, string][] = [
   [COLORS.primaryDark, COLORS.primary],
   [COLORS.accent, "#7A5518"],
@@ -38,6 +29,15 @@ const GALLERY_GRADIENTS: [string, string][] = [
   ["#6A2E2E", "#8C4A4A"],
 ];
 
+const CATEGORY_COLORS: Record<string, string> = {
+  Portrait: COLORS.primary,
+  Manuscript: COLORS.accent,
+  Theater: "#4A7A8C",
+  Document: COLORS.success,
+  History: "#6B4A8C",
+  Movement: "#8C4A4A",
+};
+
 export default function GalleryScreen() {
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -45,14 +45,15 @@ export default function GalleryScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const categories = ["All", ...Array.from(new Set(GALLERY_ITEMS.map((i) => i.category)))];
-
   const filtered =
     activeCategory === "All"
       ? GALLERY_ITEMS
       : GALLERY_ITEMS.filter((i) => i.category === activeCategory);
 
   const handleOpen = async (item: GalleryItem) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web") {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     setSelectedItem(item);
   };
 
@@ -60,13 +61,12 @@ export default function GalleryScreen() {
 
   const renderItem = ({ item, index }: { item: GalleryItem; index: number }) => {
     const gradient = GALLERY_GRADIENTS[index % GALLERY_GRADIENTS.length];
-    const catColor = CATEGORY_COLORS[item.category] || COLORS.primary;
 
     return (
       <TouchableOpacity
         style={styles.galleryItem}
         onPress={() => handleOpen(item)}
-        activeOpacity={0.85}
+        activeOpacity={0.88}
       >
         <LinearGradient
           colors={gradient}
@@ -75,10 +75,10 @@ export default function GalleryScreen() {
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.galleryIconContainer}>
-            <Feather name="image" size={28} color="rgba(255,255,255,0.7)" />
+            <Feather name="image" size={26} color="rgba(255,255,255,0.6)" />
           </View>
           <View style={styles.galleryItemFooter}>
-            <View style={[styles.categoryTag, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
+            <View style={styles.categoryTag}>
               <Text style={styles.categoryTagText}>{item.category}</Text>
             </View>
             <Text style={styles.galleryItemYear}>{item.year}</Text>
@@ -98,6 +98,8 @@ export default function GalleryScreen() {
       <LinearGradient
         colors={[COLORS.primaryDark, COLORS.primary]}
         style={[styles.header, { paddingTop: topPad + 16 }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
         <Text style={styles.headerTitle}>Gallery</Text>
         <Text style={styles.headerSubtitle}>Historical Collection</Text>
@@ -139,7 +141,7 @@ export default function GalleryScreen() {
         numColumns={2}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: Platform.OS === "web" ? 120 : 100 },
+          { paddingBottom: Platform.OS === "web" ? 120 : 120 },
         ]}
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
@@ -160,15 +162,14 @@ export default function GalleryScreen() {
                 <LinearGradient
                   colors={gradient}
                   style={styles.modalHero}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                 >
-                  <TouchableOpacity
-                    style={styles.modalClose}
-                    onPress={handleClose}
-                  >
+                  <TouchableOpacity style={styles.modalClose} onPress={handleClose}>
                     <Feather name="x" size={20} color={COLORS.white} />
                   </TouchableOpacity>
                   <View style={styles.modalHeroIcon}>
-                    <Feather name="image" size={48} color="rgba(255,255,255,0.6)" />
+                    <Feather name="image" size={48} color="rgba(255,255,255,0.5)" />
                   </View>
                   <View style={styles.modalHeroMeta}>
                     <View style={styles.categoryBadge}>
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingBottom: 22,
   },
   headerTitle: {
     fontSize: 28,
@@ -277,15 +278,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
-    shadowColor: COLORS.cardShadow,
+    shadowColor: "#2C1810",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
   },
   galleryGradient: {
-    height: 160,
-    padding: 16,
+    height: 155,
+    padding: 14,
     justifyContent: "space-between",
   },
   galleryIconContainer: {
@@ -300,6 +301,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
   categoryTagText: {
     fontSize: 10,
@@ -309,7 +311,7 @@ const styles = StyleSheet.create({
   galleryItemYear: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.65)",
   },
   galleryItemInfo: {
     padding: 12,
@@ -325,7 +327,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   modalHero: {
-    height: 200,
+    height: 210,
     padding: 24,
     paddingTop: 48,
     justifyContent: "space-between",
@@ -409,6 +411,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.borderLight,
+    marginBottom: 24,
   },
   historicalNoteText: {
     flex: 1,

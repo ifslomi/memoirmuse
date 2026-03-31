@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
   webHeaderTitle: { fontSize: 30, fontFamily: "Inter_700Bold", color: "#fff" },
   webHeaderSub: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 6, fontStyle: "italic" },
   webScroll: { flex: 1 },
-  webContent: { paddingBottom: 140 },
+  webContent: { paddingBottom: 160 },
 
   webViewport: { margin: 20, borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: "#222", backgroundColor: "#080C14" },
   webViewportInner: { height: 340, position: "relative", justifyContent: "center", alignItems: "center" },

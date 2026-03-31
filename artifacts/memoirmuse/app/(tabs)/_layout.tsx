@@ -1,48 +1,27 @@
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import React, { useEffect, useRef } from "react";
-import { Platform, StyleSheet, View, Animated, Text } from "react-native";
+import React from "react";
+import { Platform, StyleSheet, View } from "react-native";
 import COLORS from "@/constants/colors";
 
 function TabIcon({
   name,
-  color,
   focused,
-  label,
 }: {
   name: string;
   color: string;
   focused: boolean;
-  label: string;
 }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (focused) {
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1.1, useNativeDriver: true, tension: 120, friction: 8 }),
-        Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 120, friction: 8 }),
-        Animated.timing(opacity, { toValue: 0, duration: 180, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [focused]);
-
   return (
-    <Animated.View style={[styles.tabIconWrap, { transform: [{ scale }] }]}>
-      <Animated.View
-        style={[styles.tabPill, { opacity, backgroundColor: COLORS.primary + "18" }]}
+    <View style={[styles.tabIconWrap, focused && styles.tabIconWrapActive]}>
+      <Feather
+        name={name as any}
+        size={21}
+        color={focused ? COLORS.primary : COLORS.textMuted}
       />
-      <Feather name={name as any} size={22} color={color} />
-      <Text style={[styles.tabLabel, { color, fontFamily: focused ? "Inter_600SemiBold" : "Inter_400Regular" }]}>
-        {label}
-      </Text>
-    </Animated.View>
+      {focused && <View style={styles.activeDot} />}
+    </View>
   );
 }
 
@@ -59,31 +38,39 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           position: "absolute",
-          left: 20,
-          right: 20,
-          bottom: isWeb ? 20 : 28,
-          height: 72,
-          borderRadius: 36,
+          left: 24,
+          right: 24,
+          bottom: isWeb ? 16 : 24,
+          height: 68,
+          borderRadius: 34,
           backgroundColor: isIOS ? "transparent" : COLORS.white,
           borderTopWidth: 0,
           elevation: 0,
-          shadowColor: COLORS.cardShadow,
+          shadowColor: "#2C1810",
           shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.18,
-          shadowRadius: 24,
+          shadowOpacity: 0.14,
+          shadowRadius: 20,
           borderWidth: 1,
           borderColor: COLORS.borderLight,
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={85}
+              intensity={90}
               tint="light"
-              style={[StyleSheet.absoluteFill, { borderRadius: 36, overflow: "hidden" }]}
+              style={[StyleSheet.absoluteFill, { borderRadius: 34, overflow: "hidden" }]}
             />
           ) : (
             <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.white, borderRadius: 36 }]}
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor: COLORS.white,
+                  borderRadius: 34,
+                  borderWidth: 1,
+                  borderColor: COLORS.borderLight,
+                },
+              ]}
             />
           ),
       }}
@@ -91,33 +78,25 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="home" color={color} focused={focused} label="Home" />
-          ),
+          tabBarIcon: (props) => <TabIcon name="home" {...props} />,
         }}
       />
       <Tabs.Screen
         name="ar"
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="camera" color={color} focused={focused} label="AR" />
-          ),
+          tabBarIcon: (props) => <TabIcon name="camera" {...props} />,
         }}
       />
       <Tabs.Screen
         name="gallery"
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="image" color={color} focused={focused} label="Gallery" />
-          ),
+          tabBarIcon: (props) => <TabIcon name="image" {...props} />,
         }}
       />
       <Tabs.Screen
         name="quiz"
         options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="help-circle" color={color} focused={focused} label="Quiz" />
-          ),
+          tabBarIcon: (props) => <TabIcon name="help-circle" {...props} />,
         }}
       />
       <Tabs.Screen
@@ -136,21 +115,18 @@ const styles = StyleSheet.create({
   tabIconWrap: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
-    gap: 3,
-    minWidth: 60,
-    position: "relative",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    gap: 4,
   },
-  tabPill: {
-    position: "absolute",
-    top: -6,
-    left: -16,
-    right: -16,
-    bottom: -6,
-    borderRadius: 20,
+  tabIconWrapActive: {
+    backgroundColor: COLORS.primary + "12",
   },
-  tabLabel: {
-    fontSize: 10,
-    letterSpacing: 0.2,
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.primary,
   },
 });
