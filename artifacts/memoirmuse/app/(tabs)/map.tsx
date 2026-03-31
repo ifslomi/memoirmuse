@@ -193,12 +193,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     color: COLORS.white,
   },
   headerSubtitle: {
     fontSize: 14,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: "rgba(255,255,255,0.7)",
     marginTop: 4,
     fontStyle: "italic",
@@ -225,12 +225,12 @@ const styles = StyleSheet.create({
   },
   mapPlaceholderTitle: {
     fontSize: 16,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     color: COLORS.text,
   },
   mapPlaceholderText: {
     fontSize: 13,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textMuted,
     textAlign: "center",
     lineHeight: 20,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textSecondary,
   },
   locationList: {
@@ -293,12 +293,12 @@ const styles = StyleSheet.create({
   },
   locationCardName: {
     fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     color: COLORS.text,
   },
   locationCardAddress: {
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textMuted,
   },
   locationTypeBadge: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   locationTypeText: {
     fontSize: 11,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Manrope_500Medium",
     color: COLORS.textMuted,
     textTransform: "capitalize",
   },
@@ -348,13 +348,13 @@ const styles = StyleSheet.create({
   },
   modalType: {
     fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     color: "rgba(255,255,255,0.6)",
     letterSpacing: 2,
   },
   modalTitle: {
     fontSize: 22,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     color: COLORS.white,
     textAlign: "center",
   },
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   modalAddress: {
     flex: 1,
     fontSize: 14,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textSecondary,
     lineHeight: 22,
   },
@@ -381,14 +381,14 @@ const styles = StyleSheet.create({
   },
   modalSectionLabel: {
     fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     color: COLORS.primary,
     letterSpacing: 2,
     marginBottom: 12,
   },
   modalDescription: {
     fontSize: 15,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textSecondary,
     lineHeight: 24,
   },
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   connectionNoteText: {
     flex: 1,
     fontSize: 13,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textSecondary,
     lineHeight: 20,
   },

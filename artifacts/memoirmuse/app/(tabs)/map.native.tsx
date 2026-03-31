@@ -16,9 +16,9 @@ import COLORS from "@/constants/colors";
 import { MAP_LOCATIONS, MapLocation } from "@/constants/data";
 
 const TYPE_COLORS: Record<string, string> = {
-  museum: COLORS.primary,
-  heritage: COLORS.accent,
-  library: COLORS.success,
+  museum: COLORS.primaryContainer,
+  heritage: COLORS.tertiaryFixedDim,
+  library: COLORS.secondary,
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -48,11 +48,24 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[COLORS.primaryDark, COLORS.primary]}
+        colors={["#0d1520", "#0a1020"]}
         style={[styles.header, { paddingTop: topPad + 16 }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <Text style={styles.headerTitle}>Heritage Map</Text>
-        <Text style={styles.headerSubtitle}>Sites of Cultural Significance</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerIcon}>
+            <Feather name="map" size={20} color={COLORS.primaryContainer} />
+          </View>
+          <View>
+            <Text style={styles.headerEyebrow}>THE CHRONOS INTERFACE</Text>
+            <Text style={styles.headerTitle}>Heritage Map</Text>
+          </View>
+        </View>
+        <View style={styles.headerBadge}>
+          <Feather name="map-pin" size={11} color={COLORS.tertiaryFixedDim} />
+          <Text style={styles.headerBadgeText}>{MAP_LOCATIONS.length} Sites</Text>
+        </View>
       </LinearGradient>
 
       <MapContent
@@ -65,7 +78,7 @@ export default function MapScreen() {
       <View style={styles.legend}>
         {Object.entries(TYPE_COLORS).map(([type, color]) => (
           <View key={type} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: color }]} />
+            <View style={[styles.legendDot, { backgroundColor: color, shadowColor: color, shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } }]} />
             <Text style={styles.legendText}>
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </Text>
@@ -92,7 +105,7 @@ export default function MapScreen() {
             <View
               style={[
                 styles.locationChipDot,
-                { backgroundColor: TYPE_COLORS[loc.type] || COLORS.primary },
+                { backgroundColor: TYPE_COLORS[loc.type] || COLORS.primaryContainer },
               ]}
             />
             <Text
@@ -117,34 +130,38 @@ export default function MapScreen() {
         {selectedLocation && (
           <View style={styles.modalContainer}>
             <LinearGradient
+              colors={["#0d1520", COLORS.background]}
+              style={StyleSheet.absoluteFill}
+            />
+            <LinearGradient
               colors={[
-                (TYPE_COLORS[selectedLocation.type] ?? COLORS.primaryDark) + "DD",
-                TYPE_COLORS[selectedLocation.type] ?? COLORS.primary,
+                (TYPE_COLORS[selectedLocation.type] ?? COLORS.primaryContainer) + "20",
+                "transparent",
               ]}
-              style={styles.modalHeader}
-            >
-              <TouchableOpacity
-                style={styles.modalClose}
-                onPress={() => setShowDetail(false)}
-              >
-                <Feather name="x" size={20} color={COLORS.white} />
+              style={styles.modalHeaderGrad}
+            />
+            <View style={styles.modalHeader}>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setShowDetail(false)}>
+                <Feather name="x" size={18} color={COLORS.onSurface} />
               </TouchableOpacity>
               <View style={styles.modalIconContainer}>
                 <Feather
                   name={(TYPE_ICONS[selectedLocation.type] ?? "map-pin") as any}
                   size={32}
-                  color={COLORS.white}
+                  color={TYPE_COLORS[selectedLocation.type] ?? COLORS.primaryContainer}
                 />
               </View>
-              <Text style={styles.modalType}>
-                {selectedLocation.type.toUpperCase()}
-              </Text>
+              <View style={styles.modalTypeTag}>
+                <Text style={[styles.modalTypeText, { color: TYPE_COLORS[selectedLocation.type] ?? COLORS.primaryContainer }]}>
+                  {selectedLocation.type.toUpperCase()}
+                </Text>
+              </View>
               <Text style={styles.modalTitle}>{selectedLocation.name}</Text>
-            </LinearGradient>
+            </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <View style={styles.modalAddressRow}>
-                <Feather name="map-pin" size={16} color={COLORS.textMuted} />
+                <Feather name="map-pin" size={15} color={COLORS.primaryContainer} />
                 <Text style={styles.modalAddress}>{selectedLocation.address}</Text>
               </View>
 
@@ -154,11 +171,13 @@ export default function MapScreen() {
               <Text style={styles.modalDescription}>{selectedLocation.description}</Text>
 
               <View style={styles.connectionNote}>
-                <Feather name="link" size={16} color={COLORS.primary} />
+                <LinearGradient
+                  colors={[COLORS.primaryContainer + "08", "transparent"]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Feather name="link" size={16} color={COLORS.primaryContainer} />
                 <Text style={styles.connectionNoteText}>
-                  This site is part of the Pedro S. Tolentino cultural heritage
-                  trail, commemorating the life and legacy of the Father of
-                  Tagalog Zarzuela.
+                  This site is part of the Pedro S. Tolentino cultural heritage trail, commemorating the life and legacy of the Father of Tagalog Zarzuela.
                 </Text>
               </View>
             </ScrollView>
@@ -201,16 +220,11 @@ function NativeMapContent({ locations, selectedLocation, onMarkerPress, onInfoCa
             coordinate={{ latitude: loc.latitude, longitude: loc.longitude }}
             onPress={() => onMarkerPress(loc)}
           >
-            <View
-              style={[
-                styles.markerContainer,
-                { backgroundColor: TYPE_COLORS[loc.type] || COLORS.primary },
-              ]}
-            >
+            <View style={[styles.markerContainer, { backgroundColor: TYPE_COLORS[loc.type] || COLORS.primaryContainer }]}>
               <Feather
                 name={(TYPE_ICONS[loc.type] ?? "map-pin") as any}
                 size={14}
-                color={COLORS.white}
+                color="#fff"
               />
             </View>
           </Marker>
@@ -218,30 +232,22 @@ function NativeMapContent({ locations, selectedLocation, onMarkerPress, onInfoCa
       </MapView>
 
       {selectedLocation && (
-        <TouchableOpacity
-          style={styles.infoCard}
-          onPress={onInfoCardPress}
-          activeOpacity={0.9}
-        >
+        <TouchableOpacity style={styles.infoCard} onPress={onInfoCardPress} activeOpacity={0.9}>
+          <LinearGradient colors={[COLORS.surfaceContainer, COLORS.surfaceContainerLow]} style={StyleSheet.absoluteFill} />
           <View
-            style={[
-              styles.infoCardIcon,
-              { backgroundColor: (TYPE_COLORS[selectedLocation.type] ?? COLORS.primary) + "20" },
-            ]}
+            style={[styles.infoCardIcon, { backgroundColor: (TYPE_COLORS[selectedLocation.type] ?? COLORS.primaryContainer) + "18" }]}
           >
             <Feather
               name={(TYPE_ICONS[selectedLocation.type] ?? "map-pin") as any}
               size={22}
-              color={TYPE_COLORS[selectedLocation.type] ?? COLORS.primary}
+              color={TYPE_COLORS[selectedLocation.type] ?? COLORS.primaryContainer}
             />
           </View>
           <View style={styles.infoCardText}>
             <Text style={styles.infoCardTitle}>{selectedLocation.name}</Text>
-            <Text style={styles.infoCardAddress} numberOfLines={1}>
-              {selectedLocation.address}
-            </Text>
+            <Text style={styles.infoCardAddress} numberOfLines={1}>{selectedLocation.address}</Text>
           </View>
-          <Feather name="chevron-right" size={18} color={COLORS.textMuted} />
+          <Feather name="chevron-right" size={18} color={COLORS.onSurfaceVariant} />
         </TouchableOpacity>
       )}
     </View>
@@ -251,10 +257,13 @@ function NativeMapContent({ locations, selectedLocation, onMarkerPress, onInfoCa
 function WebMapContent({ locations, selectedLocation, onMarkerPress, onInfoCardPress }: MapContentProps) {
   return (
     <View style={[styles.mapContainer, styles.webMapContainer]}>
+      <LinearGradient colors={["#080e18", "#050810"]} style={StyleSheet.absoluteFill} />
       <View style={styles.webMapPlaceholder}>
-        <Feather name="map" size={36} color={COLORS.textMuted} />
-        <Text style={styles.webMapTitle}>Interactive Map</Text>
-        <Text style={styles.webMapSubtitle}>Available on mobile via Expo Go</Text>
+        <View style={styles.webMapIconRing}>
+          <Feather name="map" size={32} color={COLORS.primaryContainer} />
+        </View>
+        <Text style={styles.webMapTitle}>Heritage Map</Text>
+        <Text style={styles.webMapSubtitle}>Live map available on mobile via Expo Go</Text>
       </View>
 
       <View style={styles.webLocationGrid}>
@@ -268,23 +277,18 @@ function WebMapContent({ locations, selectedLocation, onMarkerPress, onInfoCardP
             onPress={() => { onMarkerPress(loc); onInfoCardPress(); }}
             activeOpacity={0.8}
           >
-            <View
-              style={[
-                styles.webLocationCardIcon,
-                { backgroundColor: (TYPE_COLORS[loc.type] ?? COLORS.primary) + "20" },
-              ]}
-            >
+            <View style={[styles.webLocationCardIcon, { backgroundColor: (TYPE_COLORS[loc.type] ?? COLORS.primaryContainer) + "18" }]}>
               <Feather
                 name={(TYPE_ICONS[loc.type] ?? "map-pin") as any}
                 size={18}
-                color={TYPE_COLORS[loc.type] ?? COLORS.primary}
+                color={TYPE_COLORS[loc.type] ?? COLORS.primaryContainer}
               />
             </View>
             <View style={styles.webLocationCardText}>
               <Text style={styles.webLocationCardName} numberOfLines={1}>{loc.name}</Text>
               <Text style={styles.webLocationCardType}>{loc.type}</Text>
             </View>
-            <Feather name="chevron-right" size={16} color={COLORS.textMuted} />
+            <Feather name="chevron-right" size={16} color={COLORS.onSurfaceVariant} />
           </TouchableOpacity>
         ))}
       </View>
@@ -293,301 +297,233 @@ function WebMapContent({ locations, selectedLocation, onMarkerPress, onInfoCardP
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,229,255,0.08)",
+  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,229,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,229,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerEyebrow: {
+    fontSize: 9,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: "#00e5ff",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    marginBottom: 2,
   },
   headerTitle: {
-    fontSize: 28,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.white,
+    fontSize: 22,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.onSurface,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 4,
-    fontStyle: "italic",
+  headerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.surfaceContainerHighest,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "20",
   },
-  mapContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  webMapContainer: {
-    backgroundColor: COLORS.backgroundDark,
-  },
+  headerBadgeText: { fontSize: 11, fontFamily: "Manrope_700Bold", color: COLORS.tertiaryFixedDim, letterSpacing: 0.5 },
+
+  mapContainer: { flex: 1, position: "relative" },
+  webMapContainer: {},
   webMapPlaceholder: {
     alignItems: "center",
     paddingVertical: 32,
-    gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  webMapTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.text,
-  },
-  webMapSubtitle: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textMuted,
-  },
-  webLocationGrid: {
-    padding: 16,
     gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.outlineVariant + "15",
   },
+  webMapIconRing: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(0,229,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,229,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  webMapTitle: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface },
+  webMapSubtitle: { fontSize: 13, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant },
+  webLocationGrid: { padding: 16, gap: 10 },
   webLocationCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    borderColor: COLORS.outlineVariant + "18",
   },
-  webLocationCardActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + "08",
-  },
-  webLocationCardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  webLocationCardText: {
-    flex: 1,
-    gap: 3,
-  },
-  webLocationCardName: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.text,
-  },
-  webLocationCardType: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textMuted,
-    textTransform: "capitalize",
-  },
-  map: {
-    flex: 1,
-  },
+  webLocationCardActive: { borderColor: COLORS.primaryContainer + "50", backgroundColor: COLORS.primaryContainer + "08" },
+  webLocationCardIcon: { width: 46, height: 46, borderRadius: 23, justifyContent: "center", alignItems: "center" },
+  webLocationCardText: { flex: 1, gap: 3 },
+  webLocationCardName: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.onSurface },
+  webLocationCardType: { fontSize: 11, fontFamily: "Manrope_500Medium", color: COLORS.onSurfaceVariant, textTransform: "capitalize" },
+
+  map: { flex: 1 },
   markerContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: COLORS.white,
+    borderColor: "#ffffff30",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
   },
   infoCard: {
     position: "absolute",
     bottom: 16,
     left: 16,
     right: 16,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    borderColor: COLORS.outlineVariant + "20",
+    overflow: "hidden",
   },
-  infoCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  infoCardText: {
-    flex: 1,
-    gap: 4,
-  },
-  infoCardTitle: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.text,
-  },
-  infoCardAddress: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textMuted,
-  },
+  infoCardIcon: { width: 50, height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center" },
+  infoCardText: { flex: 1, gap: 4 },
+  infoCardTitle: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.onSurface },
+  infoCardAddress: { fontSize: 12, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant },
+
   legend: {
     flexDirection: "row",
-    gap: 16,
-    paddingHorizontal: 16,
+    gap: 20,
+    paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: COLORS.surfaceWarm,
+    backgroundColor: COLORS.surfaceContainerLow,
     borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
+    borderTopColor: COLORS.outlineVariant + "15",
   },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-  },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 8 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, textTransform: "capitalize" },
+
   locationList: {
-    maxHeight: 56,
+    maxHeight: 58,
     backgroundColor: COLORS.background,
     borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
+    borderTopColor: COLORS.outlineVariant + "15",
   },
-  locationListContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-    alignItems: "center",
-  },
+  locationListContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, alignItems: "center" },
   locationChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 7,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: COLORS.backgroundDark,
+    borderRadius: 999,
+    backgroundColor: COLORS.surfaceContainerHigh,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    borderColor: COLORS.outlineVariant + "20",
   },
-  locationChipActive: {
-    backgroundColor: COLORS.primaryDark,
-    borderColor: COLORS.primary,
-  },
-  locationChipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  locationChipText: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: COLORS.textSecondary,
-    maxWidth: 140,
-  },
-  locationChipTextActive: {
-    color: COLORS.white,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  locationChipActive: { backgroundColor: "rgba(0,229,255,0.1)", borderColor: "rgba(0,229,255,0.4)" },
+  locationChipDot: { width: 7, height: 7, borderRadius: 4 },
+  locationChipText: { fontSize: 12, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, maxWidth: 140 },
+  locationChipTextActive: { color: "#00e5ff" },
+
+  modalContainer: { flex: 1, backgroundColor: COLORS.background, overflow: "hidden" },
+  modalHeaderGrad: { position: "absolute", top: 0, left: 0, right: 0, height: 280 },
   modalHeader: {
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 36,
     alignItems: "center",
-    gap: 8,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.outlineVariant + "15",
+    position: "relative",
   },
   modalClose: {
-    alignSelf: "flex-end",
+    position: "absolute",
+    top: 24,
+    right: 24,
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: COLORS.surfaceContainerHighest,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
   },
   modalIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "rgba(0,229,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,229,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalType: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.6)",
-    letterSpacing: 2,
+  modalTypeTag: {
+    backgroundColor: COLORS.surfaceContainerHighest,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
   },
-  modalTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.white,
-    textAlign: "center",
-  },
-  modalBody: {
-    flex: 1,
-    padding: 24,
-  },
+  modalTypeText: { fontSize: 10, fontFamily: "Manrope_700Bold", letterSpacing: 1.5, textTransform: "uppercase" },
+  modalTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
+  modalBody: { flex: 1, padding: 24 },
   modalAddressRow: {
     flexDirection: "row",
     gap: 10,
     alignItems: "flex-start",
+    marginBottom: 20,
   },
-  modalAddress: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-  },
-  modalDivider: {
-    height: 1,
-    backgroundColor: COLORS.borderLight,
-    marginVertical: 20,
-  },
+  modalAddress: { flex: 1, fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 22 },
+  modalDivider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.outlineVariant + "25", marginBottom: 20 },
   modalSectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    color: COLORS.primary,
-    letterSpacing: 2,
+    fontSize: 10,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.primaryContainer,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
     marginBottom: 12,
   },
-  modalDescription: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    lineHeight: 24,
-  },
+  modalDescription: { fontSize: 15, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 24 },
   connectionNote: {
     flexDirection: "row",
     gap: 12,
-    backgroundColor: COLORS.surfaceWarm,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.borderLight,
+    borderColor: COLORS.primaryContainer + "20",
     marginTop: 20,
+    overflow: "hidden",
   },
-  connectionNoteText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
+  connectionNoteText: { flex: 1, fontSize: 13, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 20 },
 });

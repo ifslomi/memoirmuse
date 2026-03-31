@@ -30,6 +30,9 @@ const ARTIFACT_DATA = AR_MARKERS.map((m, i) => ({
   xp: ["+350 XP", "+500 XP", "+150 XP"][i % 3],
 }));
 
+const RETICLE_SIZE = 280;
+const CORNER_SIZE = 52;
+
 export default function ARScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>("idle");
@@ -41,46 +44,69 @@ export default function ARScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0.4)).current;
   const cornerBlink = useRef(new Animated.Value(1)).current;
+  const cornerScale = useRef(new Animated.Value(1)).current;
+  const instrAnim = useRef(new Animated.Value(0)).current;
+  const detectedScale = useRef(new Animated.Value(0)).current;
+  const scanRingAnim = useRef(new Animated.Value(0)).current;
+
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 20 : insets.top;
-
   const artifact = ARTIFACT_DATA[markerIndex % ARTIFACT_DATA.length];
 
-  const startScanLine = useCallback(() => {
-    scanLineAnim.setValue(0);
-    Animated.loop(
-      Animated.timing(scanLineAnim, {
-        toValue: 1,
-        duration: 2400,
-        easing: Easing.inOut(Easing.quad),
-        useNativeDriver: true,
-      })
-    ).start();
-  }, []);
+  useEffect(() => {
+    Animated.timing(instrAnim, { toValue: 1, duration: 500, delay: 300, useNativeDriver: true }).start();
 
-  const startPulse = useCallback(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.08, duration: 900, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
     ).start();
+
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 0.9, duration: 1200, useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.9, duration: 1400, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.35, duration: 1400, useNativeDriver: true }),
       ])
     ).start();
+
     Animated.loop(
       Animated.sequence([
-        Animated.timing(cornerBlink, { toValue: 0.5, duration: 500, useNativeDriver: true }),
-        Animated.timing(cornerBlink, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(cornerBlink, { toValue: 0.55, duration: 700, useNativeDriver: true }),
+        Animated.timing(cornerBlink, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(cornerScale, { toValue: 1.04, duration: 1600, useNativeDriver: true }),
+        Animated.timing(cornerScale, { toValue: 0.97, duration: 1600, useNativeDriver: true }),
       ])
     ).start();
   }, []);
 
-  useEffect(() => {
-    startPulse();
+  const startScanLine = useCallback(() => {
+    scanLineAnim.setValue(0);
+    Animated.loop(
+      Animated.timing(scanLineAnim, {
+        toValue: 1,
+        duration: 2200,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const startScanRing = useCallback(() => {
+    scanRingAnim.setValue(0);
+    Animated.loop(
+      Animated.timing(scanRingAnim, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
   }, []);
 
   const handleScan = async () => {
@@ -89,18 +115,26 @@ export default function ARScreen() {
     setScanState("scanning");
     setSignalPct(0);
     startScanLine();
+    startScanRing();
 
     let progress = 0;
     const interval = setInterval(() => {
-      progress += 12 + Math.random() * 15;
+      progress += 10 + Math.random() * 14;
       setSignalPct(Math.min(Math.round(progress), 98));
       if (progress >= 100) {
         clearInterval(interval);
         setSignalPct(98);
         setScanState("detected");
+        detectedScale.setValue(0);
+        Animated.spring(detectedScale, {
+          toValue: 1,
+          friction: 5,
+          tension: 60,
+          useNativeDriver: true,
+        }).start();
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-    }, 280);
+    }, 300);
   };
 
   const handleReset = () => {
@@ -112,14 +146,20 @@ export default function ARScreen() {
   if (Platform.OS !== "web" && !permission?.granted) {
     return (
       <View style={[styles.root, styles.center]}>
+        <LinearGradient colors={["#0a1520", "#050810"]} style={StyleSheet.absoluteFill} />
         <View style={styles.permBox}>
+          <View style={styles.permGlow} />
           <View style={styles.permIconRing}>
-            <Feather name="camera" size={36} color={COLORS.primaryContainer} />
+            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={StyleSheet.absoluteFill} />
+            <View style={styles.permIconInner}>
+              <Feather name="camera" size={32} color="#00363d" />
+            </View>
           </View>
           <Text style={styles.permTitle}>Camera Access Required</Text>
-          <Text style={styles.permText}>Enable camera access to scan AR markers at heritage sites.</Text>
+          <Text style={styles.permText}>Enable camera to scan AR markers at heritage sites and discover hidden artifacts.</Text>
           <TouchableOpacity style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.permBtnGrad}>
+              <Feather name="camera" size={18} color="#00363d" />
               <Text style={styles.permBtnText}>Enable Camera</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -130,10 +170,11 @@ export default function ARScreen() {
 
   const scanYInterp = scanLineAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 280],
+    outputRange: [0, RETICLE_SIZE - 12],
   });
 
   const isNative = Platform.OS !== "web" && permission?.granted;
+  const cornerColor = scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer;
 
   return (
     <View style={styles.root}>
@@ -141,16 +182,13 @@ export default function ARScreen() {
         <CameraView style={StyleSheet.absoluteFill} facing="back" />
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.fakeCam]}>
-          <LinearGradient
-            colors={["#0a1520", "#050810", "#0d1a10"]}
-            style={StyleSheet.absoluteFill}
-          />
+          <LinearGradient colors={["#050e1a", "#030810", "#050c10"]} style={StyleSheet.absoluteFill} />
           <View style={styles.gridOverlay} />
         </View>
       )}
 
       <LinearGradient
-        colors={["rgba(19,19,19,0.65)", "transparent", "rgba(19,19,19,0.75)"]}
+        colors={["rgba(19,19,19,0.72)", "transparent", "rgba(19,19,19,0.82)"]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
@@ -171,76 +209,72 @@ export default function ARScreen() {
         </View>
       </View>
 
-      {scanState === "idle" && (
-        <View style={styles.instructions}>
-          <Text style={styles.instrTitle}>ENVIRONMENTAL SCAN</Text>
-          <Text style={styles.instrSub}>Scan a marker to discover Pedro S. Tolentino's legacy.</Text>
-        </View>
-      )}
+      <Animated.View style={[styles.instructionsBubble, { opacity: instrAnim }]}>
+        <Text style={[
+          styles.instrTitle,
+          scanState === "detected" && { color: COLORS.tertiaryFixedDim },
+          scanState === "scanning" && { color: COLORS.primaryContainer },
+        ]}>
+          {scanState === "idle" ? "ENVIRONMENTAL SCAN" : scanState === "scanning" ? "SCANNING..." : "ARTIFACT DETECTED"}
+        </Text>
+        <Text style={styles.instrSub}>
+          {scanState === "idle"
+            ? "Scan a marker to discover Pedro S. Tolentino's legacy."
+            : scanState === "scanning"
+            ? "Hold steady — artifact data initializing."
+            : artifact.title}
+        </Text>
+      </Animated.View>
 
-      {scanState === "scanning" && (
-        <View style={styles.instructions}>
-          <Text style={[styles.instrTitle, { color: COLORS.primaryContainer }]}>SCANNING...</Text>
-          <Text style={styles.instrSub}>Hold steady — artifact data initializing.</Text>
-        </View>
-      )}
-
-      {scanState === "detected" && (
-        <View style={styles.instructions}>
-          <Text style={[styles.instrTitle, { color: COLORS.tertiaryFixedDim }]}>ARTIFACT DETECTED</Text>
-          <Text style={styles.instrSub}>{artifact.title}</Text>
-        </View>
-      )}
-
-      <View style={styles.reticleWrap}>
-        <Animated.View style={[styles.reticle, { opacity: cornerBlink }]}>
-          <View style={[styles.corner, styles.cornerTL, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
-          <View style={[styles.corner, styles.cornerTR, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
-          <View style={[styles.corner, styles.cornerBL, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
-          <View style={[styles.corner, styles.cornerBR, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
+      <View style={styles.reticleWrap} pointerEvents="none">
+        <Animated.View style={[styles.reticle, { transform: [{ scale: cornerScale }], opacity: cornerBlink }]}>
+          {[
+            [styles.cornerTL],
+            [styles.cornerTR],
+            [styles.cornerBL],
+            [styles.cornerBR],
+          ].map((cornerStyles, i) => (
+            <View key={i} style={[styles.corner, ...cornerStyles, { borderColor: cornerColor }]} />
+          ))}
 
           {scanState === "scanning" && (
-            <Animated.View
-              style={[
-                styles.scanLine,
-                { transform: [{ translateY: scanYInterp }] },
-              ]}
-            />
+            <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanYInterp }] }]} />
           )}
 
           {scanState === "idle" && (
             <View style={styles.reticleCenter}>
-              <Animated.View style={[styles.reticleDot, { transform: [{ scale: pulseAnim }], opacity: glowAnim }]} />
+              <Animated.View style={[styles.reticleRing, { transform: [{ scale: pulseAnim }] }]} />
+              <Animated.View style={[styles.reticleDot, { opacity: glowAnim }]} />
             </View>
           )}
 
           {scanState === "detected" && (
-            <View style={styles.detectedBurst}>
-              <Animated.View style={[styles.detectedRing, { transform: [{ scale: pulseAnim }] }]} />
-              <Feather name="check" size={32} color={COLORS.tertiaryFixedDim} />
-            </View>
+            <Animated.View style={[styles.detectedBurst, { transform: [{ scale: detectedScale }] }]}>
+              <View style={styles.detectedRingOuter} />
+              <View style={styles.detectedRingInner} />
+              <Feather name="check" size={34} color={COLORS.tertiaryFixedDim} />
+            </Animated.View>
           )}
         </Animated.View>
       </View>
 
       <View style={styles.rightActions}>
-        <TouchableOpacity style={styles.sideBtn}>
-          <Feather name="sun" size={22} color={COLORS.tertiaryFixedDim} />
-          <Text style={styles.sideBtnLabel}>Hint</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.sideBtn}>
-          <Feather name="zap" size={22} color={COLORS.primaryContainer} />
-          <Text style={styles.sideBtnLabel}>Flash</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.sideBtn}>
-          <Feather name="archive" size={22} color={COLORS.onSurface} />
-          <Text style={styles.sideBtnLabel}>Relics</Text>
-        </TouchableOpacity>
+        {[
+          { icon: "sun" as const, label: "Hint", color: COLORS.tertiaryFixedDim },
+          { icon: "zap" as const, label: "Flash", color: COLORS.primaryContainer },
+          { icon: "archive" as const, label: "Relics", color: COLORS.onSurface },
+        ].map((btn) => (
+          <TouchableOpacity key={btn.label} style={styles.sideBtn} activeOpacity={0.8}>
+            <Feather name={btn.icon} size={20} color={btn.color} />
+            <Text style={styles.sideBtnLabel}>{btn.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <View style={styles.bottomHUD}>
+      <View style={styles.bottomHUD} pointerEvents="none">
         <View style={styles.trackingRow}>
-          <Feather name="radio" size={13} color={COLORS.primaryContainer} />
+          <Animated.View style={[styles.trackingDot, { opacity: glowAnim }]} />
+          <Feather name="radio" size={12} color={COLORS.primaryContainer} />
           <Text style={styles.trackingLabel}>TRACKING ACTIVE</Text>
         </View>
         <View style={styles.signalTrack}>
@@ -265,17 +299,13 @@ export default function ARScreen() {
         )}
         {scanState === "scanning" && (
           <View style={styles.scanningBar}>
-            <Animated.View style={[styles.scanningIndicator, { transform: [{ scale: pulseAnim }] }]} />
+            <Animated.View style={[styles.scanningDot, { transform: [{ scale: pulseAnim }] }]} />
             <Text style={styles.scanningText}>ANALYZING MARKER DATA...</Text>
           </View>
         )}
         {scanState === "detected" && (
           <View style={styles.detectedActions}>
-            <TouchableOpacity
-              style={styles.exploreBtn}
-              onPress={() => setShowDetail(true)}
-              activeOpacity={0.85}
-            >
+            <TouchableOpacity style={styles.exploreBtn} onPress={() => setShowDetail(true)} activeOpacity={0.85}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.exploreBtnGrad}>
                 <Feather name="eye" size={18} color="#00363d" />
                 <Text style={styles.exploreBtnText}>Explore Artifact</Text>
@@ -283,7 +313,6 @@ export default function ARScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={styles.nextBtn} onPress={handleReset} activeOpacity={0.8}>
               <Feather name="rotate-ccw" size={18} color={COLORS.primaryContainer} />
-              <Text style={styles.nextBtnText}>Next</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -301,21 +330,28 @@ export default function ARScreen() {
           </View>
 
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            <View style={styles.modalArtifactViewer}>
-              <View style={styles.modalGlowOrb} />
+            <View style={styles.modalArtViewer}>
+              <View style={styles.modalGlow} />
               <View style={styles.modalIconRing}>
-                <Feather name={artifact.icon as any} size={44} color={COLORS.primaryContainer} />
+                <LinearGradient
+                  colors={["rgba(0,229,255,0.15)", "rgba(0,229,255,0.05)"]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Feather name={artifact.icon as any} size={48} color={COLORS.primaryContainer} />
               </View>
+
               <View style={styles.modalTagRow}>
                 <View style={styles.modalEraTag}>
                   <Text style={styles.modalEraText}>{artifact.era}</Text>
                 </View>
-                <View style={[styles.modalRarityTag, { borderColor: artifact.rarityColor + "40" }]}>
+                <View style={[styles.modalRarityTag, { borderColor: artifact.rarityColor + "50" }]}>
                   <Text style={[styles.modalRarityText, { color: artifact.rarityColor }]}>{artifact.rarity}</Text>
                 </View>
               </View>
+
               <Text style={styles.modalTitle}>{artifact.title}</Text>
               <Text style={styles.modalDesc}>{artifact.description}</Text>
+
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.modalPlayBtn} activeOpacity={0.85}>
                   <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.modalPlayGrad}>
@@ -323,10 +359,10 @@ export default function ARScreen() {
                     <Text style={styles.modalPlayText}>PLAY NARRATION</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modalShareBtn}>
-                  <Feather name="share" size={20} color={COLORS.primaryContainer} />
+                <TouchableOpacity style={styles.modalIconBtn}>
+                  <Feather name="share-2" size={20} color={COLORS.primaryContainer} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modalShareBtn}>
+                <TouchableOpacity style={styles.modalIconBtn}>
                   <Feather name="bookmark" size={20} color={COLORS.primaryContainer} />
                 </TouchableOpacity>
               </View>
@@ -340,6 +376,10 @@ export default function ARScreen() {
               </View>
 
               <View style={styles.modalXpCard}>
+                <LinearGradient
+                  colors={[COLORS.tertiaryContainer + "12", COLORS.tertiaryContainer + "06"]}
+                  style={StyleSheet.absoluteFill}
+                />
                 <Feather name="award" size={24} color={COLORS.tertiaryFixedDim} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.modalXpTitle}>Chronos Challenge Unlocked</Text>
@@ -350,11 +390,7 @@ export default function ARScreen() {
           </ScrollView>
 
           <View style={styles.modalFoot}>
-            <TouchableOpacity
-              style={styles.modalNextBtn}
-              onPress={() => { setShowDetail(false); handleReset(); }}
-              activeOpacity={0.85}
-            >
+            <TouchableOpacity style={styles.modalNextBtn} onPress={() => { setShowDetail(false); handleReset(); }} activeOpacity={0.85}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.modalNextGrad}>
                 <Feather name="camera" size={18} color="#00363d" />
                 <Text style={styles.modalNextText}>Scan Next Artifact</Text>
@@ -367,19 +403,16 @@ export default function ARScreen() {
   );
 }
 
-const RETICLE_SIZE = 280;
-const CORNER_SIZE = 48;
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#050810" },
   center: { justifyContent: "center", alignItems: "center" },
-  fakeCam: { backgroundColor: "#050810" },
+  fakeCam: {},
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundImage: Platform.OS === "web"
       ? "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)"
       : undefined,
-    backgroundSize: Platform.OS === "web" ? "40px 40px" : undefined,
+    backgroundSize: Platform.OS === "web" ? "44px 44px" : undefined,
   } as any,
 
   topBar: {
@@ -392,54 +425,54 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: "rgba(19,19,19,0.6)",
+    paddingBottom: 14,
+    backgroundColor: "rgba(19,19,19,0.65)",
   },
   topLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   avatarRing: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 2,
     borderColor: COLORS.primaryContainer,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.surfaceContainerHigh,
   },
-  topTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primaryContainer, letterSpacing: 1.5 },
+  topTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "#00e5ff", letterSpacing: 1.5 },
   topSub: { fontSize: 9, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, letterSpacing: 1, textTransform: "uppercase" },
   xpChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(53,53,52,0.6)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: "rgba(53,53,52,0.65)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.outlineVariant + "25",
   },
-  xpText: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primaryContainer },
+  xpText: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "#00e5ff" },
 
-  instructions: {
+  instructionsBubble: {
     position: "absolute",
-    top: Platform.OS === "web" ? 100 : 130,
+    top: Platform.OS === "web" ? 90 : 120,
     left: 20,
     right: 20,
     zIndex: 30,
-    backgroundColor: "rgba(53,53,52,0.7)",
-    borderRadius: 16,
+    backgroundColor: "rgba(32,31,31,0.82)",
+    borderRadius: 18,
     padding: 16,
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "20",
+    borderColor: "rgba(59,73,76,0.25)",
   },
   instrTitle: {
     fontSize: 12,
     fontFamily: "SpaceGrotesk_700Bold",
     color: COLORS.onSurface,
-    letterSpacing: 2,
+    letterSpacing: 2.5,
     textTransform: "uppercase",
   },
   instrSub: {
@@ -459,33 +492,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 20,
-    pointerEvents: "none",
   },
   reticle: {
     width: RETICLE_SIZE,
     height: RETICLE_SIZE,
-    position: "relative",
     justifyContent: "center",
     alignItems: "center",
   },
   corner: { position: "absolute", width: CORNER_SIZE, height: CORNER_SIZE, borderWidth: 3.5 },
-  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
   scanLine: {
     position: "absolute",
-    top: 0,
+    top: 8,
     left: 12,
     right: 12,
     height: 2,
     backgroundColor: COLORS.primaryContainer,
     shadowColor: COLORS.primaryContainer,
-    shadowOpacity: 0.9,
-    shadowRadius: 12,
+    shadowOpacity: 1,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 0 },
   },
   reticleCenter: { justifyContent: "center", alignItems: "center" },
+  reticleRing: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.primaryContainer + "40",
+  },
   reticleDot: {
     width: 10,
     height: 10,
@@ -493,19 +532,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryContainer,
     shadowColor: COLORS.primaryContainer,
     shadowOpacity: 1,
-    shadowRadius: 12,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 0 },
   },
-  detectedBurst: { justifyContent: "center", alignItems: "center", gap: 0 },
-  detectedRing: {
+  detectedBurst: { justifyContent: "center", alignItems: "center" },
+  detectedRingOuter: {
     position: "absolute",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 1.5,
+    borderColor: COLORS.tertiaryFixedDim + "50",
+  },
+  detectedRingInner: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 2,
     borderColor: COLORS.tertiaryFixedDim,
     shadowColor: COLORS.tertiaryFixedDim,
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.7,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 0 },
   },
@@ -514,45 +561,54 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 16,
     top: "50%",
-    marginTop: -90,
+    marginTop: -100,
     zIndex: 30,
     gap: 12,
   },
   sideBtn: {
-    width: 56,
-    height: 56,
-    backgroundColor: "rgba(53,53,52,0.7)",
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    backgroundColor: "rgba(32,31,31,0.78)",
+    borderRadius: 29,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "25",
-    gap: 2,
+    borderColor: "rgba(59,73,76,0.3)",
+    gap: 3,
   },
-  sideBtnLabel: { fontSize: 7, fontFamily: "Manrope_700Bold", color: COLORS.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 0.5 },
+  sideBtnLabel: { fontSize: 7, fontFamily: "Manrope_700Bold", color: COLORS.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 0.4 },
 
   bottomHUD: {
     position: "absolute",
     left: 20,
-    bottom: 130,
+    bottom: 150,
     zIndex: 30,
     gap: 6,
-    pointerEvents: "none",
   },
   trackingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  trackingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: COLORS.primaryContainer,
+    shadowColor: COLORS.primaryContainer,
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
+  },
   trackingLabel: { fontSize: 10, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 2, textTransform: "uppercase" },
-  signalTrack: { width: 120, height: 3, backgroundColor: COLORS.surfaceContainerHighest, borderRadius: 2, overflow: "hidden" },
-  signalFill: { height: "100%", borderRadius: 2 },
+  signalTrack: { width: 130, height: 3, backgroundColor: COLORS.surfaceContainerHighest, borderRadius: 2, overflow: "hidden" },
+  signalFill: { height: "100%", borderRadius: 2, shadowColor: "#00e5ff", shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
   signalLabel: { fontSize: 9, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, letterSpacing: 1.5, textTransform: "uppercase" },
 
   bottomActions: {
     position: "absolute",
-    bottom: 94,
+    bottom: 100,
     left: 20,
     right: 20,
     zIndex: 30,
   },
-  scanBtn: { borderRadius: 16, overflow: "hidden" },
+  scanBtn: { borderRadius: 18, overflow: "hidden" },
   scanBtnGrad: {
     flexDirection: "row",
     alignItems: "center",
@@ -560,74 +616,96 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 18,
   },
-  scanBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 2, textTransform: "uppercase" },
+  scanBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 2.5, textTransform: "uppercase" },
   scanningBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "rgba(53,53,52,0.8)",
+    backgroundColor: "rgba(32,31,31,0.88)",
     padding: 18,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "20",
+    borderColor: "rgba(0,229,255,0.2)",
   },
-  scanningIndicator: {
+  scanningDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: COLORS.primaryContainer,
     shadowColor: COLORS.primaryContainer,
-    shadowOpacity: 0.9,
+    shadowOpacity: 1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
   },
   scanningText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer, letterSpacing: 2 },
   detectedActions: { flexDirection: "row", gap: 10 },
-  exploreBtn: { flex: 1, borderRadius: 16, overflow: "hidden" },
-  exploreBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
+  exploreBtn: { flex: 1, borderRadius: 18, overflow: "hidden" },
+  exploreBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 18 },
   exploreBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1 },
   nextBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+    width: 58,
+    height: 58,
     justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    alignItems: "center",
+    borderRadius: 18,
+    borderWidth: 2,
     borderColor: COLORS.primaryContainer + "50",
-    backgroundColor: COLORS.primaryContainer + "10",
+    backgroundColor: "rgba(0,229,255,0.08)",
   },
-  nextBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer },
 
-  permBox: { alignItems: "center", gap: 20, paddingHorizontal: 40 },
+  permBox: {
+    width: "85%",
+    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: "center",
+    gap: 16,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "20",
+    overflow: "hidden",
+  },
+  permGlow: {
+    position: "absolute",
+    top: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: COLORS.primaryContainer + "08",
+  },
   permIconRing: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.surfaceContainerHigh,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: COLORS.primaryContainer + "40",
+    overflow: "hidden",
+    padding: 2,
   },
-  permTitle: { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
+  permIconInner: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 45,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  permTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
   permText: { fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 22 },
-  permBtn: { borderRadius: 14, overflow: "hidden" },
-  permBtnGrad: { paddingHorizontal: 36, paddingVertical: 14 },
-  permBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", textTransform: "uppercase", letterSpacing: 1 },
+  permBtn: { width: "100%", borderRadius: 16, overflow: "hidden", marginTop: 4 },
+  permBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 17 },
+  permBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1.5 },
 
   modalRoot: { flex: 1, backgroundColor: COLORS.background },
   modalTopBar: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingVertical: 16,
+    paddingTop: 24,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.outlineVariant + "20",
+    borderBottomColor: COLORS.outlineVariant + "15",
   },
   modalClose: {
     width: 36,
@@ -639,98 +717,91 @@ const styles = StyleSheet.create({
   },
   modalTopTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurfaceVariant, letterSpacing: 2.5 },
   modalScroll: { flex: 1 },
-  modalArtifactViewer: {
+  modalArtViewer: {
+    padding: 28,
     alignItems: "center",
-    padding: 32,
-    paddingTop: 40,
     gap: 16,
     position: "relative",
   },
-  modalGlowOrb: {
+  modalGlow: {
     position: "absolute",
     top: 0,
-    left: "50%",
-    marginLeft: -80,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: COLORS.primaryContainer + "0a",
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: COLORS.primaryContainer + "06",
   },
   modalIconRing: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.surfaceContainerHigh,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.primaryContainer + "30",
-    shadowColor: COLORS.primaryContainer,
-    shadowOpacity: 0.25,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 0 },
+    borderWidth: 1,
+    borderColor: COLORS.primaryContainer + "25",
+    overflow: "hidden",
   },
   modalTagRow: { flexDirection: "row", gap: 8 },
   modalEraTag: {
-    backgroundColor: COLORS.primaryContainer + "15",
+    backgroundColor: COLORS.primaryContainer + "12",
     borderWidth: 1,
-    borderColor: COLORS.primaryContainer + "30",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderColor: COLORS.primaryContainer + "25",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 999,
   },
-  modalEraText: { fontSize: 9, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 1.5, textTransform: "uppercase" },
+  modalEraText: { fontSize: 9, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 1, textTransform: "uppercase" },
   modalRarityTag: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 999,
   },
-  modalRarityText: { fontSize: 9, fontFamily: "Manrope_700Bold", letterSpacing: 1.5, textTransform: "uppercase" },
-  modalTitle: { fontSize: 26, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
-  modalDesc: { fontSize: 15, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 24 },
-  modalActions: { flexDirection: "row", gap: 10, alignItems: "center", marginTop: 6 },
-  modalPlayBtn: { flex: 1, borderRadius: 999, overflow: "hidden" },
-  modalPlayGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14 },
-  modalPlayText: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 2, textTransform: "uppercase" },
-  modalShareBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.surfaceContainerHighest,
+  modalRarityText: { fontSize: 9, fontFamily: "Manrope_700Bold", letterSpacing: 1, textTransform: "uppercase" },
+  modalTitle: { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center", lineHeight: 32 },
+  modalDesc: { fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 22 },
+  modalActions: { flexDirection: "row", alignItems: "center", gap: 10, width: "100%" },
+  modalPlayBtn: { flex: 1, borderRadius: 16, overflow: "hidden" },
+  modalPlayGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
+  modalPlayText: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1.5 },
+  modalIconBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "25",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "30",
   },
-  modalBody: { paddingHorizontal: 24, paddingBottom: 40, gap: 20 },
-  modalSectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primary, letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 8 },
+  modalBody: { paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
+  modalSectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primaryContainer, letterSpacing: 2.5, marginBottom: 4 },
   modalContextCard: {
     flexDirection: "row",
-    gap: 14,
-    backgroundColor: "rgba(53,53,52,0.5)",
+    gap: 12,
+    backgroundColor: COLORS.surfaceContainerLow,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
     borderColor: COLORS.outlineVariant + "15",
   },
-  modalContextBar: { width: 3, backgroundColor: COLORS.primaryContainer, borderRadius: 2, alignSelf: "stretch" },
-  modalContextText: { flex: 1, fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 24 },
+  modalContextBar: { width: 3, backgroundColor: COLORS.primaryContainer, borderRadius: 2 },
+  modalContextText: { flex: 1, fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 22 },
   modalXpCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 14,
-    backgroundColor: COLORS.tertiaryContainer + "10",
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
     borderColor: COLORS.tertiaryContainer + "25",
+    overflow: "hidden",
   },
-  modalXpTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.tertiary },
-  modalXpSub: { fontSize: 12, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 18, marginTop: 4 },
-  modalFoot: { padding: 20, paddingBottom: Platform.OS === "ios" ? 36 : 20 },
+  modalXpTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.tertiary, marginBottom: 4 },
+  modalXpSub: { fontSize: 12, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 18 },
+  modalFoot: { padding: 20, paddingBottom: 32, borderTopWidth: 1, borderTopColor: COLORS.outlineVariant + "15" },
   modalNextBtn: { borderRadius: 16, overflow: "hidden" },
   modalNextGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 17 },
-  modalNextText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1, textTransform: "uppercase" },
+  modalNextText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1 },
 });

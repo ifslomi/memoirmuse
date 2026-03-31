@@ -18,12 +18,6 @@ import COLORS from "@/constants/colors";
 
 const { width: W } = Dimensions.get("window");
 
-const QUICK_ACTIONS = [
-  { id: "map", label: "Map", desc: "Heritage locations", icon: "map-pin" as const, route: "/(tabs)/map" as const },
-  { id: "quiz", label: "Quizzes", desc: "Test your knowledge", icon: "help-circle" as const, route: "/(tabs)/quiz" as const },
-  { id: "gallery", label: "Achievements", desc: "8 unlocked", icon: "award" as const, route: "/(tabs)/gallery" as const },
-];
-
 const DISCOVERIES = [
   {
     id: "1",
@@ -32,6 +26,8 @@ const DISCOVERIES = [
     gradeColor: COLORS.tertiaryFixedDim,
     title: "The Kahapon, Ngayon at Bukas Script",
     desc: "A hand-written draft of Tolentino's most celebrated allegorical play discovered at the Marikina archive.",
+    icon: "book-open" as const,
+    gradColors: ["#1c1b1b", "#201f1f"] as const,
   },
   {
     id: "2",
@@ -40,6 +36,8 @@ const DISCOVERIES = [
     gradeColor: COLORS.primaryContainer,
     title: "The Nationalist Manifesto",
     desc: "A rare document outlining Tolentino's vision for Filipino cultural sovereignty through the arts.",
+    icon: "file-text" as const,
+    gradColors: ["#0e1520", "#0d1524"] as const,
   },
   {
     id: "3",
@@ -48,21 +46,73 @@ const DISCOVERIES = [
     gradeColor: COLORS.onSurfaceVariant,
     title: "The Tolentino Birth Registry",
     desc: "Parish record from Quingua, Bulacan confirming Pedro S. Tolentino's birth date and lineage.",
+    icon: "archive" as const,
+    gradColors: ["#1c1b1b", "#201f1f"] as const,
   },
 ];
+
+function AnimatedCard({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: any }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(24)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 500,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateY, {
+        toValue: 0,
+        delay,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 60,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[style, { opacity: anim, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+function PressableCard({ onPress, children, style }: { onPress: () => void; children: React.ReactNode; style?: any }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={1}
+      onPressIn={() =>
+        Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, friction: 8 }).start()
+      }
+      onPressOut={() =>
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }).start()
+      }
+    >
+      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
+    </TouchableOpacity>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 20 : insets.top;
-  const headerFade = useRef(new Animated.Value(0)).current;
-  const contentFade = useRef(new Animated.Value(0)).current;
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(headerFade, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(contentFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-    ]).start();
+    Animated.timing(headerAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   const go = async (route: string) => {
@@ -72,20 +122,23 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <Animated.View style={[styles.topBar, { paddingTop: topPad + 12, opacity: headerFade }]}>
+      <Animated.View style={[styles.topBar, { paddingTop: topPad + 10, opacity: headerAnim }]}>
         <View style={styles.topLeft}>
           <View style={styles.avatarRing}>
+            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
             <View style={styles.avatarInner}>
-              <Feather name="user" size={18} color={COLORS.primaryContainer} />
+              <Feather name="user" size={16} color={COLORS.primaryContainer} />
             </View>
           </View>
           <View>
             <Text style={styles.appName}>THE CHRONOS INTERFACE</Text>
-            <Text style={styles.userLevel}>Level 7 Archivist</Text>
+            <Text style={styles.userLevel}>Level 14 Archivist</Text>
           </View>
         </View>
         <View style={styles.xpChip}>
-          <Feather name="star" size={13} color={COLORS.tertiaryFixedDim} />
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <Feather name="star" size={13} color={COLORS.tertiaryFixedDim} />
+          </Animated.View>
           <Text style={styles.xpText}>1,250 XP</Text>
         </View>
       </Animated.View>
@@ -93,109 +146,119 @@ export default function HomeScreen() {
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 130, paddingTop: topPad + 68 }}
+        contentContainerStyle={{ paddingBottom: 140, paddingTop: topPad + 72 }}
       >
-        <Animated.View style={{ opacity: contentFade }}>
-          <View style={styles.expeditionCard}>
+        <AnimatedCard delay={80}>
+          <PressableCard onPress={() => go("/(tabs)/ar")} style={styles.expeditionCard}>
             <LinearGradient
-              colors={["#1c1b1b", "#0e0e0e"]}
+              colors={["#0d1520", "#0e0e0e"]}
               style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
             />
-            <View style={styles.expeditionGlow} />
+            <View style={styles.expGlowTop} />
+            <View style={styles.expGlowRight} />
+
             <View style={styles.expContent}>
-              <Text style={styles.expSubLabel}>ACTIVE EXPEDITION</Text>
+              <View style={styles.expStatusRow}>
+                <Animated.View style={[styles.statusDot, { transform: [{ scale: pulseAnim }] }]} />
+                <Text style={styles.expSubLabel}>ACTIVE EXPEDITION</Text>
+              </View>
               <Text style={styles.expTitle}>
-                The Marikina{"\n"}
-                <Text style={styles.expTitleCyan}>Heritage Trail</Text>
+                The Victorian{"\n"}
+                <Text style={styles.expTitleAccent}>Underground</Text>
               </Text>
               <View style={styles.progressRow}>
                 <View style={styles.progressTrack}>
                   <LinearGradient
                     colors={[COLORS.primary, COLORS.primaryContainer]}
-                    style={[styles.progressFill, { width: "45%" }]}
+                    style={[styles.progressFill, { width: "65%" }]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                   />
                 </View>
-                <Text style={styles.progressPct}>45%</Text>
+                <Text style={styles.progressPct}>65%</Text>
               </View>
               <View style={styles.nextLocRow}>
-                <View style={styles.nextLocChip}>
-                  <Feather name="map-pin" size={13} color={COLORS.primaryContainer} />
+                <Feather name="map-pin" size={13} color={COLORS.primaryContainer} />
+                <View>
                   <Text style={styles.nextLocLabel}>NEXT ARTIFACT LOCATION</Text>
+                  <Text style={styles.nextLocName}>Old Station Vaults</Text>
                 </View>
-                <Text style={styles.nextLocName}>Tolentino Heritage Museum</Text>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.resumeBtn}
-              onPress={() => go("/(tabs)/ar")}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryContainer]}
-                style={styles.resumeGrad}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Feather name="play" size={18} color="#00363d" />
-                <Text style={styles.resumeText}>Resume Journey</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.quickGrid}>
-            {QUICK_ACTIONS.map((a) => (
-              <TouchableOpacity
-                key={a.id}
-                style={styles.quickCard}
-                onPress={() => go(a.route)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.quickIconRing}>
-                  <Feather name={a.icon} size={22} color={COLORS.tertiaryFixedDim} />
-                </View>
-                <Text style={styles.quickLabel}>{a.label}</Text>
-                <Text style={styles.quickDesc}>{a.desc}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Recent Discoveries</Text>
-              <TouchableOpacity onPress={() => go("/(tabs)/timeline")} style={styles.archiveBtn}>
-                <Text style={styles.archiveBtnText}>Archive</Text>
-                <Feather name="arrow-right" size={13} color={COLORS.primaryContainer} />
-              </TouchableOpacity>
+            <View style={styles.expImageArea}>
+              <View style={styles.playCircleGlow} />
+              <View style={styles.playCircle}>
+                <Feather name="play" size={28} color={COLORS.primaryContainer} />
+              </View>
+              <Text style={styles.resumeLabel}>Resume{"\n"}Journey</Text>
             </View>
+          </PressableCard>
+        </AnimatedCard>
 
-            {DISCOVERIES.map((d) => (
-              <TouchableOpacity
-                key={d.id}
-                style={styles.discoveryCard}
-                activeOpacity={0.8}
+        <AnimatedCard delay={160} style={styles.bentoGrid}>
+          <PressableCard
+            onPress={() => go("/(tabs)/quiz")}
+            style={styles.bentoCard}
+          >
+            <LinearGradient colors={["#1c1b1b", "#1a1a1a"]} style={StyleSheet.absoluteFill} />
+            <View style={[styles.bentoIconRing, { backgroundColor: COLORS.tertiaryContainer + "15" }]}>
+              <Feather name="help-circle" size={22} color={COLORS.tertiaryFixedDim} />
+            </View>
+            <Text style={styles.bentoTitle}>Quizzes</Text>
+            <Text style={styles.bentoDesc}>Test your era knowledge</Text>
+          </PressableCard>
+
+          <PressableCard
+            onPress={() => go("/(tabs)/gallery")}
+            style={styles.bentoCard}
+          >
+            <LinearGradient colors={["#1c1b1b", "#1a1a1a"]} style={StyleSheet.absoluteFill} />
+            <View style={[styles.bentoIconRing, { backgroundColor: COLORS.primaryContainer + "12" }]}>
+              <Feather name="award" size={22} color={COLORS.primaryContainer} />
+            </View>
+            <Text style={styles.bentoTitle}>Achievements</Text>
+            <Text style={styles.bentoDesc}>8 Unlocked this week</Text>
+          </PressableCard>
+        </AnimatedCard>
+
+        <View style={styles.section}>
+          <AnimatedCard delay={220} style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>Recent Discoveries</Text>
+            <TouchableOpacity onPress={() => go("/(tabs)/timeline")} style={styles.archiveBtn}>
+              <Text style={styles.archiveBtnText}>ARCHIVE VIEW</Text>
+              <Feather name="arrow-right" size={13} color={COLORS.primaryContainer} />
+            </TouchableOpacity>
+          </AnimatedCard>
+
+          {DISCOVERIES.map((d, i) => (
+            <AnimatedCard key={d.id} delay={280 + i * 80}>
+              <PressableCard
                 onPress={() => go("/(tabs)/gallery")}
+                style={styles.discoveryCard}
               >
-                <View style={styles.discThumb}>
-                  <LinearGradient
-                    colors={["#201f1f", "#1c1b1b"]}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <Feather name="book-open" size={28} color={COLORS.primaryContainer} />
-                </View>
+                <LinearGradient
+                  colors={d.gradColors}
+                  style={styles.discThumb}
+                >
+                  <View style={styles.discThumbInner}>
+                    <Feather name={d.icon} size={26} color={COLORS.primaryContainer} />
+                  </View>
+                  <View style={[styles.discGrade, { borderColor: d.gradeColor + "50" }]}>
+                    <Text style={[styles.discGradeText, { color: d.gradeColor }]}>{d.grade}</Text>
+                  </View>
+                </LinearGradient>
                 <View style={styles.discBody}>
                   <Text style={styles.discEra}>{d.era}</Text>
                   <Text style={styles.discTitle}>{d.title}</Text>
                   <Text style={styles.discDesc} numberOfLines={2}>{d.desc}</Text>
                 </View>
-                <View style={[styles.discGrade, { borderColor: d.gradeColor + "40" }]}>
-                  <Text style={[styles.discGradeText, { color: d.gradeColor }]}>{d.grade}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Animated.View>
+              </PressableCard>
+            </AnimatedCard>
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
@@ -215,22 +278,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 14,
-    backgroundColor: "rgba(19,19,19,0.75)",
+    backgroundColor: "rgba(19,19,19,0.85)",
   },
   topLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatarRing: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    borderColor: COLORS.primaryContainer,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
+    padding: 2,
   },
   avatarInner: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: COLORS.surfaceContainerHigh,
     justifyContent: "center",
     alignItems: "center",
@@ -238,14 +300,14 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 13,
     fontFamily: "SpaceGrotesk_700Bold",
-    color: COLORS.primaryContainer,
+    color: "#00e5ff",
     letterSpacing: 1.5,
   },
   userLevel: {
-    fontSize: 10,
-    fontFamily: "Manrope_500Medium",
+    fontSize: 9,
+    fontFamily: "Manrope_600SemiBold",
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     textTransform: "uppercase",
   },
   xpChip: {
@@ -254,15 +316,15 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: COLORS.surfaceContainerHighest,
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "30",
+    borderColor: COLORS.outlineVariant + "25",
   },
   xpText: {
     fontSize: 13,
     fontFamily: "SpaceGrotesk_700Bold",
-    color: COLORS.primaryContainer,
+    color: "#00e5ff",
     letterSpacing: 0.5,
   },
 
@@ -270,128 +332,233 @@ const styles = StyleSheet.create({
 
   expeditionCard: {
     margin: 16,
-    borderRadius: 20,
+    marginBottom: 10,
+    borderRadius: 22,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "20",
+    borderColor: "rgba(0,229,255,0.1)",
+    flexDirection: "row",
+    minHeight: 220,
+    shadowColor: "#00e5ff",
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
   },
-  expeditionGlow: {
+  expGlowTop: {
+    position: "absolute",
+    top: -60,
+    left: -60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "#00e5ff08",
+  },
+  expGlowRight: {
     position: "absolute",
     top: 0,
     right: 0,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: COLORS.primaryContainer + "08",
+    bottom: 0,
+    width: 140,
+    backgroundColor: "rgba(0,229,255,0.03)",
   },
-  expContent: { padding: 22, gap: 14 },
+  expContent: { flex: 1, padding: 22, gap: 14, justifyContent: "center" },
+  expStatusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: COLORS.primaryContainer,
+    shadowColor: COLORS.primaryContainer,
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
+  },
   expSubLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: "Manrope_700Bold",
     color: COLORS.primary,
     letterSpacing: 2,
     textTransform: "uppercase",
   },
   expTitle: {
-    fontSize: 36,
+    fontSize: 30,
     fontFamily: "SpaceGrotesk_700Bold",
     color: COLORS.onSurface,
-    lineHeight: 42,
+    lineHeight: 36,
   },
-  expTitleCyan: { color: COLORS.primaryContainer },
-  progressRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  expTitleAccent: { color: COLORS.primaryContainer },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   progressTrack: {
     flex: 1,
-    height: 6,
+    height: 5,
     borderRadius: 3,
     backgroundColor: COLORS.surfaceContainerHighest,
     overflow: "hidden",
   },
-  progressFill: { height: "100%", borderRadius: 3 },
-  progressPct: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer },
+  progressFill: { height: "100%", borderRadius: 3, shadowColor: "#00e5ff", shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
+  progressPct: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer },
   nextLocRow: {
-    backgroundColor: COLORS.surfaceContainerHighest + "80",
-    padding: 14,
-    borderRadius: 14,
-    gap: 6,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: COLORS.surfaceContainerHighest + "60",
+    padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "20",
+    borderColor: COLORS.outlineVariant + "15",
   },
-  nextLocChip: { flexDirection: "row", alignItems: "center", gap: 6 },
   nextLocLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: "Manrope_700Bold",
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     textTransform: "uppercase",
+    marginBottom: 2,
   },
-  nextLocName: { fontSize: 14, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurface },
-  resumeBtn: { margin: 16, marginTop: 4, borderRadius: 14, overflow: "hidden" },
-  resumeGrad: {
-    flexDirection: "row",
-    alignItems: "center",
+  nextLocName: { fontSize: 13, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurface },
+
+  expImageArea: {
+    width: 120,
     justifyContent: "center",
+    alignItems: "center",
     gap: 10,
-    paddingVertical: 16,
+    padding: 14,
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(0,229,255,0.06)",
   },
-  resumeText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1, textTransform: "uppercase" },
-
-  quickGrid: { flexDirection: "row", paddingHorizontal: 16, gap: 10, marginBottom: 4 },
-  quickCard: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceContainerHigh,
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "15",
+  playCircleGlow: {
+    position: "absolute",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#00e5ff0c",
   },
-  quickIconRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.tertiaryContainer + "18",
+  playCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: "rgba(0,229,255,0.3)",
+    backgroundColor: "rgba(0,229,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
   },
-  quickLabel: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface },
-  quickDesc: { fontSize: 11, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant },
+  resumeLabel: {
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.onSurface,
+    textAlign: "center",
+    lineHeight: 17,
+  },
 
-  section: { paddingHorizontal: 16, marginTop: 20 },
-  sectionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  bentoGrid: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 4,
+  },
+  bentoCard: {
+    flex: 1,
+    borderRadius: 18,
+    overflow: "hidden",
+    padding: 18,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "18",
+    minHeight: 120,
+  },
+  bentoIconRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bentoTitle: {
+    fontSize: 16,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.onSurface,
+  },
+  bentoDesc: {
+    fontSize: 11,
+    fontFamily: "Manrope_400Regular",
+    color: COLORS.onSurfaceVariant,
+    lineHeight: 16,
+  },
+
+  section: { paddingHorizontal: 16, marginTop: 16 },
+  sectionHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
   sectionTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface },
   archiveBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-  archiveBtnText: { fontSize: 12, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, textTransform: "uppercase", letterSpacing: 1 },
+  archiveBtnText: {
+    fontSize: 10,
+    fontFamily: "Manrope_700Bold",
+    color: COLORS.primaryContainer,
+    letterSpacing: 1.2,
+  },
 
   discoveryCard: {
-    flexDirection: "row",
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: "hidden",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "15",
+    borderColor: COLORS.outlineVariant + "18",
+    backgroundColor: COLORS.surfaceContainerLow,
   },
   discThumb: {
-    width: 90,
-    height: 90,
+    height: 160,
     justifyContent: "center",
     alignItems: "center",
-    flexShrink: 0,
+    position: "relative",
   },
-  discBody: { flex: 1, padding: 12, gap: 4 },
-  discEra: { fontSize: 9, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, letterSpacing: 1, textTransform: "uppercase" },
-  discTitle: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface },
-  discDesc: { fontSize: 11, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 17 },
+  discThumbInner: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(0,229,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,229,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   discGrade: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: COLORS.surfaceContainerHighest + "cc",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    top: 12,
+    right: 12,
+    backgroundColor: "rgba(53,53,52,0.85)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 1,
   },
-  discGradeText: { fontSize: 8, fontFamily: "Manrope_800ExtraBold", letterSpacing: 0.5, textTransform: "uppercase" },
+  discGradeText: {
+    fontSize: 9,
+    fontFamily: "Manrope_800ExtraBold",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  discBody: { padding: 16, gap: 6 },
+  discEra: {
+    fontSize: 9,
+    fontFamily: "Manrope_600SemiBold",
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  discTitle: {
+    fontSize: 16,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.onSurface,
+  },
+  discDesc: {
+    fontSize: 12,
+    fontFamily: "Manrope_400Regular",
+    color: COLORS.onSurfaceVariant,
+    lineHeight: 18,
+  },
 });
