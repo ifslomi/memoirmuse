@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
-  Dimensions,
   Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,8 +14,6 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import COLORS from "@/constants/colors";
-
-const { width } = Dimensions.get("window");
 
 const FEATURES = [
   {
@@ -30,7 +27,7 @@ const FEATURES = [
   {
     id: "ar",
     label: "AR Scanner",
-    description: "Reveal holographic artifacts",
+    description: "Reveal 3D holographic artifacts",
     icon: "camera" as const,
     route: "/(tabs)/ar" as const,
     gradient: [COLORS.accent, "#7A5A14"] as [string, string],
@@ -65,15 +62,13 @@ function FeatureCard({
   item,
   index,
   onPress,
-  wide,
 }: {
   item: typeof FEATURES[0];
   index: number;
   onPress: (route: string) => void;
-  wide?: boolean;
 }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -95,7 +90,7 @@ function FeatureCard({
   return (
     <Animated.View
       style={[
-        wide ? styles.cardWide : styles.cardHalf,
+        styles.cardWrap,
         { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
       ]}
     >
@@ -111,13 +106,13 @@ function FeatureCard({
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.cardIconBox}>
-            <Feather name={item.icon} size={24} color="#fff" />
+            <Feather name={item.icon} size={26} color="#fff" />
           </View>
           <View style={styles.cardTextWrap}>
             <Text style={styles.cardLabel}>{item.label}</Text>
-            <Text style={styles.cardDesc} numberOfLines={1}>{item.description}</Text>
+            <Text style={styles.cardDesc}>{item.description}</Text>
           </View>
-          <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.5)" />
+          <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.5)" />
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
@@ -149,7 +144,7 @@ export default function HomeScreen() {
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={[styles.content, { paddingTop: topPad, paddingBottom: 130 }]}
+      contentContainerStyle={[{ paddingTop: topPad, paddingBottom: 130 }]}
     >
       <LinearGradient
         colors={[COLORS.primaryDark, COLORS.primary, "#A84040"]}
@@ -207,26 +202,15 @@ export default function HomeScreen() {
 
       <View style={styles.featuresSection}>
         <Text style={styles.sectionLabel}>EXPLORE</Text>
-        <View style={styles.featuresGrid}>
-          {FEATURES.slice(0, 2).map((item, index) => (
+        <View style={styles.featuresList}>
+          {FEATURES.map((item, index) => (
             <FeatureCard
               key={item.id}
               item={item}
               index={index}
               onPress={handlePress}
-              wide={index === 0}
             />
           ))}
-          <View style={styles.featuresRow}>
-            {FEATURES.slice(2).map((item, index) => (
-              <FeatureCard
-                key={item.id}
-                item={item}
-                index={index + 2}
-                onPress={handlePress}
-              />
-            ))}
-          </View>
         </View>
       </View>
 
@@ -243,11 +227,11 @@ export default function HomeScreen() {
   );
 }
 
-const CARD_W = (width - 56) / 3;
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { paddingHorizontal: 0 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
 
   hero: {
     paddingHorizontal: 28,
@@ -362,42 +346,46 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     gap: 14,
   },
-  featuresGrid: { gap: 10 },
-  featuresRow: {
-    flexDirection: "row",
+  featuresList: {
     gap: 10,
   },
 
-  cardWide: { width: "100%" },
-  cardHalf: { flex: 1, minWidth: CARD_W },
-  cardInner: { borderRadius: 18, overflow: "hidden" },
-
+  cardWrap: {
+    width: "100%",
+  },
+  cardInner: {
+    borderRadius: 18,
+    overflow: "hidden",
+  },
   cardGrad: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    padding: 18,
-    minHeight: 82,
+    gap: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
   },
   cardIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 13,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
   },
-  cardTextWrap: { flex: 1, gap: 3 },
+  cardTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
   cardLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Inter_700Bold",
     color: "#fff",
   },
   cardDesc: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.75)",
   },
 
   quoteWrap: {

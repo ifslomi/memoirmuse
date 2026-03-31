@@ -5,26 +5,6 @@ import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import COLORS from "@/constants/colors";
 
-function TabIcon({
-  name,
-  focused,
-}: {
-  name: string;
-  color: string;
-  focused: boolean;
-}) {
-  return (
-    <View style={[styles.tabIconWrap, focused && styles.tabIconWrapActive]}>
-      <Feather
-        name={name as any}
-        size={21}
-        color={focused ? COLORS.primary : COLORS.textMuted}
-      />
-      {focused && <View style={styles.activeDot} />}
-    </View>
-  );
-}
-
 export default function TabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
@@ -35,30 +15,36 @@ export default function TabLayout() {
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,
         headerShown: false,
-        tabBarShowLabel: false,
         tabBarStyle: {
           position: "absolute",
-          left: 24,
-          right: 24,
+          left: 20,
+          right: 20,
           bottom: isWeb ? 16 : 24,
-          height: 68,
-          borderRadius: 34,
+          height: 72,
+          borderRadius: 36,
           backgroundColor: isIOS ? "transparent" : COLORS.white,
           borderTopWidth: 0,
           elevation: 0,
           shadowColor: "#2C1810",
           shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.14,
-          shadowRadius: 20,
+          shadowOpacity: 0.15,
+          shadowRadius: 24,
           borderWidth: 1,
           borderColor: COLORS.borderLight,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          marginBottom: 8,
+        },
+        tabBarIconStyle: {
+          marginTop: 8,
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
               intensity={90}
               tint="light"
-              style={[StyleSheet.absoluteFill, { borderRadius: 34, overflow: "hidden" }]}
+              style={[StyleSheet.absoluteFill, { borderRadius: 36, overflow: "hidden" }]}
             />
           ) : (
             <View
@@ -66,7 +52,7 @@ export default function TabLayout() {
                 StyleSheet.absoluteFill,
                 {
                   backgroundColor: COLORS.white,
-                  borderRadius: 34,
+                  borderRadius: 36,
                   borderWidth: 1,
                   borderColor: COLORS.borderLight,
                 },
@@ -78,25 +64,37 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: (props) => <TabIcon name="home" {...props} />,
+          tabBarLabel: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="home" size={20} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="ar"
         options={{
-          tabBarIcon: (props) => <TabIcon name="camera" {...props} />,
+          tabBarLabel: "AR",
+          tabBarIcon: ({ color }) => (
+            <Feather name="camera" size={20} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="gallery"
         options={{
-          tabBarIcon: (props) => <TabIcon name="image" {...props} />,
+          tabBarLabel: "Gallery",
+          tabBarIcon: ({ color }) => (
+            <Feather name="image" size={20} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="quiz"
         options={{
-          tabBarIcon: (props) => <TabIcon name="help-circle" {...props} />,
+          tabBarLabel: "Quiz",
+          tabBarIcon: ({ color }) => (
+            <Feather name="help-circle" size={20} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -111,22 +109,4 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabIconWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    gap: 4,
-  },
-  tabIconWrapActive: {
-    backgroundColor: COLORS.primary + "12",
-  },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.primary,
-  },
-});
+const styles = StyleSheet.create({});
