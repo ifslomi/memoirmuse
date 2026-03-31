@@ -309,7 +309,7 @@ export default function ARScreen() {
           <View style={styles.permIconRing}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={StyleSheet.absoluteFill} />
             <Feather name="camera" size={32} color="#00363d" />
-          </LinearGradient>
+          </View>
           <Text style={styles.permTitle}>Camera Access Required</Text>
           <Text style={styles.permText}>Enable camera to scan AR markers at heritage sites and discover hidden artifacts.</Text>
           <TouchableOpacity style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
@@ -343,8 +343,7 @@ export default function ARScreen() {
 
       <LinearGradient
         colors={["rgba(19,19,19,0.72)", "transparent", "rgba(19,19,19,0.82)"]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
       />
 
       <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
@@ -353,7 +352,7 @@ export default function ARScreen() {
             <Feather name="user" size={16} color={COLORS.primaryContainer} />
           </View>
           <View>
-            <Text style={styles.topTitle}>THE CHRONOS INTERFACE</Text>
+            <Text style={styles.topTitle}>MEMOIRMUSE</Text>
             <Text style={styles.topSub}>Operator Level 24</Text>
           </View>
         </View>
@@ -380,7 +379,7 @@ export default function ARScreen() {
         </Text>
       </Animated.View>
 
-      <View style={styles.reticleWrap} pointerEvents="none">
+      <View style={[styles.reticleWrap, { pointerEvents: "none" }]}>
         <Animated.View style={[styles.reticle, { transform: [{ scale: cornerScale }], opacity: cornerBlink }]}>
           {[styles.cornerTL, styles.cornerTR, styles.cornerBL, styles.cornerBR].map((cs, i) => (
             <View key={i} style={[styles.corner, cs, { borderColor: cornerColor }]} />
@@ -425,7 +424,7 @@ export default function ARScreen() {
         ))}
       </View>
 
-      <View style={styles.bottomHUD} pointerEvents="none">
+      <View style={[styles.bottomHUD, { pointerEvents: "none" }]}>
         <View style={styles.trackingRow}>
           <Animated.View style={[styles.trackingDot, { opacity: glowAnim }]} />
           <Text style={styles.trackingLabel}>TRACKING ACTIVE</Text>
@@ -530,7 +529,7 @@ export default function ARScreen() {
                 />
                 <Feather name="award" size={22} color={COLORS.tertiaryFixedDim} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.modalXpTitle}>Chronos Challenge Unlocked</Text>
+                  <Text style={styles.modalXpTitle}>MemoirMuse Challenge Unlocked</Text>
                   <Text style={styles.modalXpSub}>Answer questions about this artifact to earn {artifact.xp}.</Text>
                 </View>
               </View>

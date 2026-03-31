@@ -310,8 +310,8 @@ export default function QuizScreen() {
             <Feather name="user" size={16} color={COLORS.primaryContainer} />
           </View>
           <View>
-            <Text style={styles.topTitle}>THE CHRONOS INTERFACE</Text>
-            <Text style={styles.topSub}>Chronos Challenges</Text>
+            <Text style={styles.topTitle}>MEMOIRMUSE</Text>
+            <Text style={styles.topSub}>MemoirMuse Challenges</Text>
           </View>
         </View>
         <View style={styles.xpChip}>
@@ -342,7 +342,7 @@ export default function QuizScreen() {
               </View>
             </View>
 
-            <Text style={styles.heroTitle}>Chronos Challenge</Text>
+            <Text style={styles.heroTitle}>MemoirMuse Challenge</Text>
             <Text style={styles.heroSub}>
               Test your knowledge of Pedro S. Tolentino's life, works, and legacy to earn XP and unlock Digital Relic Badges.
             </Text>

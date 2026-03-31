@@ -58,7 +58,7 @@ export default function MapScreen() {
             <Feather name="map" size={20} color={COLORS.primaryContainer} />
           </View>
           <View>
-            <Text style={styles.headerEyebrow}>THE CHRONOS INTERFACE</Text>
+            <Text style={styles.headerEyebrow}>MEMOIRMUSE</Text>
             <Text style={styles.headerTitle}>Heritage Map</Text>
           </View>
         </View>

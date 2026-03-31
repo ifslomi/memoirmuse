@@ -131,7 +131,7 @@ export default function HomeScreen() {
             </View>
           </View>
           <View>
-            <Text style={styles.appName}>THE CHRONOS INTERFACE</Text>
+            <Text style={styles.appName}>MEMOIRMUSE</Text>
             <Text style={styles.userLevel}>Level 14 Archivist</Text>
           </View>
         </View>

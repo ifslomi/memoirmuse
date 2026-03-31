@@ -174,7 +174,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     value={username}
                     onChangeText={setUsername}
-                    placeholder="name@chronos.io"
+                    placeholder="your username"
                     placeholderTextColor={COLORS.onSurfaceVariant + "70"}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -248,7 +248,7 @@ export default function LoginScreen() {
 
               <Text style={styles.legalText}>
                 By accessing MemoirMuse, you agree to the{" "}
-                <Text style={styles.legalLink}>Chronos Temporal Stability Agreement</Text>.
+                <Text style={styles.legalLink}>MemoirMuse Terms of Service</Text>.
               </Text>
             </Animated.View>
           </Animated.View>

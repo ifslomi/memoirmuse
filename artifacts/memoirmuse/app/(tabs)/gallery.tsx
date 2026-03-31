@@ -76,7 +76,7 @@ export default function ProfileScreen() {
     if (Platform.OS !== "web") {
       Alert.alert(
         "Sign Out",
-        "You will be logged out of the Chronos Interface.",
+        "You will be logged out of MemoirMuse.",
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -106,7 +106,7 @@ export default function ProfileScreen() {
             </View>
           </View>
           <View>
-            <Text style={styles.topTitle}>THE CHRONOS INTERFACE</Text>
+            <Text style={styles.topTitle}>MEMOIRMUSE</Text>
             <Text style={styles.topSub}>{user ?? "Historian"} • Profile</Text>
           </View>
         </View>

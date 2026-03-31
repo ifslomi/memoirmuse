@@ -1,4 +1,4 @@
-import { Tabs, useRouter } from "expo-router";
+import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
 import {
@@ -14,7 +14,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@/context/AuthContext";
 
 const TAB_H = 60;
 const CENTER_SIZE = 50;
@@ -183,15 +182,6 @@ function WrappedTabBar(props: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
-  const { user } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!user) {
-      router.replace("/login");
-    }
-  }, [user]);
-
   return (
     <Tabs
       tabBar={(props) => <WrappedTabBar {...props} />}

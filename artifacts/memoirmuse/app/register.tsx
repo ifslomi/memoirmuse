@@ -125,7 +125,7 @@ export default function RegisterScreen() {
                 <Feather name="user-plus" size={32} color={COLORS.primaryContainer} />
               </View>
               <Text style={styles.pageTitle}>Create Archive</Text>
-              <Text style={styles.pageSub}>Register your identity in the Chronos network.</Text>
+              <Text style={styles.pageSub}>Register your identity in MemoirMuse.</Text>
             </View>
 
             <Animated.View style={[styles.formCard, { transform: [{ translateX: shakeAnim }] }]}>
