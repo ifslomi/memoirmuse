@@ -14,7 +14,7 @@ import {
   useFonts as useManrope,
 } from "@expo-google-fonts/manrope";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Slot, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { Platform } from "react-native";
@@ -31,12 +31,19 @@ if (Platform.OS !== "web") {
 
 const queryClient = new QueryClient();
 
-function AuthGate() {
+function AuthGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    setInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (!initialized) return;
+
     const inLogin = segments[0] === "login";
     const inRegister = segments[0] === "register";
     const inAuth = inLogin || inRegister;
@@ -46,20 +53,9 @@ function AuthGate() {
     } else if (user && inAuth) {
       router.replace("/(tabs)");
     }
-  }, [user, segments]);
+  }, [user, segments, initialized]);
 
-  return null;
-}
-
-function RootLayoutNav() {
-  return (
-    <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="register" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" />
-    </Stack>
-  );
+  return <>{children}</>;
 }
 
 export default function RootLayout() {
@@ -105,8 +101,9 @@ export default function RootLayout() {
           <AuthProvider>
             <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#131313" }}>
               <KeyboardProvider>
-                <AuthGate />
-                <RootLayoutNav />
+                <AuthGate>
+                  <Slot />
+                </AuthGate>
               </KeyboardProvider>
             </GestureHandlerRootView>
           </AuthProvider>
