@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#343d96",
+              "surface-container": "#201f1f",
+              "on-error-container": "#ffdad6",
+              "surface-container-highest": "#353534",
+              "on-tertiary-fixed-variant": "#5b4300",
+              "outline-variant": "#3b494c",
+              "surface-container-low": "#1c1b1b",
+              "on-secondary-fixed": "#000767",
+              "secondary-fixed-dim": "#bdc2ff",
+              "outline": "#849396",
+              "on-primary-fixed-variant": "#004f58",
+              "tertiary-container": "#ffc948",
+              "inverse-on-surface": "#313030",
+              "on-secondary": "#1b247f",
+              "on-primary-fixed": "#001f24",
+              "surface-tint": "#00daf3",
+              "on-secondary-container": "#a8afff",
+              "surface-dim": "#131313",
+              "on-secondary-fixed-variant": "#343d96",
+              "tertiary-fixed-dim": "#fabd00",
+              "surface-container-high": "#2a2a2a",
+              "surface-bright": "#393939",
+              "error-container": "#93000a",
+              "on-primary-container": "#00626e",
+              "on-tertiary-container": "#725400",
+              "on-background": "#e5e2e1",
+              "surface-container-lowest": "#0e0e0e",
+              "error": "#ffb4ab",
+              "tertiary": "#ffebc6",
+              "primary-fixed-dim": "#00daf3",
+              "background": "#131313",
+              "on-primary": "#00363d",
+              "primary-container": "#00e5ff",
+              "surface": "#131313",
+              "on-surface": "#e5e2e1",
+              "inverse-surface": "#e5e2e1",
+              "secondary": "#bdc2ff",
+              "inverse-primary": "#006875",
+              "surface-variant": "#353534",
+              "on-tertiary-fixed": "#261a00",
+              "primary": "#c3f5ff",
+              "secondary-fixed": "#e0e0ff",
+              "tertiary-fixed": "#ffdf9e",
+              "on-error": "#690005",
+              "on-surface-variant": "#bac9cc",
+              "on-tertiary": "#3f2e00",
+              "primary-fixed": "#9cf0ff"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-panel {
+        background: rgba(53, 53, 52, 0.6);
+        backdrop-filter: blur(20px);
+      }
+      .relic-glow {
+        box-shadow: 0 0 20px rgba(250, 189, 0, 0.1);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#131313]/60 backdrop-blur-xl flex justify-between items-center px-6 py-4 w-full shadow-[0_40px_40px_rgba(229,226,225,0.05)]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest border-2 border-primary-container overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Modern minimalist user profile avatar with neon blue lighting accents on dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpVEJH3_aIg7uhbMxUAUZvrCGqbWGojhGKXLcD_E0shb_h8-Xju7xwCZCVY6O764r76MUmQ1a1G8l1EtrF-nZQjr9kxxIXUflbw_WiBSKGt5w6MKUfprILyUbJexMqahhjmgiUeKnX8vErcw0vyjyNxThrKnN5azNmPbHBPhDR_mf-nQnsypbiehDiO9E5ym8vY3DbLw0Ldeb0EPCdBJ84tjN-P8PD-FGOTaCK70D-3eIgo5cksShd_ZNu-8o9nGUTVexFmLhKNF4"/>
+</div>
+<div class="flex flex-col">
+<span class="text-xl font-bold tracking-widest text-[#00E5FF] uppercase font-headline">The Chronos Interface</span>
+<span class="text-[10px] text-on-surface-variant font-label tracking-[0.1em] uppercase">Level 14 Archivist</span>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-surface-container px-4 py-2 rounded-full border border-outline-variant/15">
+<span class="material-symbols-outlined text-tertiary-fixed-dim" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="font-headline font-bold text-[#00E5FF]">1,250 XP</span>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto space-y-10">
+<!-- Hero: Current Tour Progress -->
+<section class="relative overflow-hidden rounded-lg bg-surface-container-low p-8 border border-outline-variant/10 shadow-2xl">
+<div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-4">
+<span class="text-primary font-label text-sm tracking-[0.2em] uppercase">Active Expedition</span>
+<h1 class="font-headline text-4xl md:text-5xl font-bold text-on-surface leading-tight">The Victorian <br/><span class="text-primary-container">Underground</span></h1>
+<div class="flex items-center gap-4 mt-6">
+<div class="flex-1 bg-surface-container-highest h-3 rounded-full overflow-hidden w-64">
+<div class="bg-gradient-to-r from-primary to-primary-container h-full w-[65%] rounded-full shadow-[0_0_15px_#00e5ff]"></div>
+</div>
+<span class="font-headline font-medium text-primary-container">65%</span>
+</div>
+</div>
+<div class="bg-surface-container-highest/50 p-4 rounded-xl border border-outline-variant/20 backdrop-blur-md">
+<p class="text-xs text-on-surface-variant uppercase tracking-widest mb-2">Next Artifact Location</p>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container">location_on</span>
+<span class="font-medium">Old Station Vaults</span>
+</div>
+</div>
+</div>
+<!-- Background Decorative Element -->
+<div class="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none">
+<div class="absolute inset-0 bg-gradient-to-l from-primary-container/20 to-transparent"></div>
+<img class="w-full h-full object-cover mix-blend-overlay" data-alt="Faded historical blueprint of a Victorian subway tunnel with technical annotations in blueprint blue" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArZYvf_TL6ZgAMJMgi1IymX996nZTNeNB03GV6TfJAMBw9k2-FM3rEE4jjjyWrPRDgz2C2ppq0-bjnxP5OeJcuVH5IMQsrw3FR-L8REuYFnB3luCYkGHT0gKMTy79VJwA-JCAVbjE1MwegWn46v_qUBoiRcci8UFG1sZZTUVk50rq_K1nSgybOOfe1rDWpwRZQrt7LMeU_q6FwAYz32L00qIkMKgkdHT5ZpPTn5xqSVR51YopH-nPuried_wS9sqymHyi78GqrFpo"/>
+</div>
+</section>
+<!-- Quick Actions Bento Grid -->
+<section class="grid grid-cols-2 md:grid-cols-3 gap-4">
+<button class="col-span-2 md:col-span-1 group relative overflow-hidden aspect-square md:aspect-auto md:h-full bg-gradient-to-br from-primary-container to-secondary-container p-6 rounded-lg flex flex-col justify-end transition-transform active:scale-95">
+<span class="material-symbols-outlined text-4xl mb-4 text-on-primary">play_circle</span>
+<h3 class="font-headline text-2xl font-bold text-on-primary leading-tight">Resume<br/>Journey</h3>
+<div class="absolute top-4 right-4 opacity-30 group-hover:opacity-60 transition-opacity">
+<span class="material-symbols-outlined text-6xl">explore</span>
+</div>
+</button>
+<button class="bg-surface-container-high p-6 rounded-lg border border-outline-variant/10 flex flex-col justify-between hover:bg-surface-container-highest transition-colors active:scale-95">
+<div class="w-12 h-12 rounded-full bg-tertiary-container/10 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-tertiary-fixed-dim" style="font-variation-settings: 'FILL' 1;">extension</span>
+</div>
+<div>
+<h3 class="font-headline text-xl font-bold mb-1">Quizzes</h3>
+<p class="text-xs text-on-surface-variant">Test your era knowledge</p>
+</div>
+</button>
+<button class="bg-surface-container-high p-6 rounded-lg border border-outline-variant/10 flex flex-col justify-between hover:bg-surface-container-highest transition-colors active:scale-95">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+<div>
+<h3 class="font-headline text-xl font-bold mb-1">Achievements</h3>
+<p class="text-xs text-on-surface-variant">8 Unlocked this week</p>
+</div>
+</button>
+</section>
+<!-- Recent Discoveries: Cards Section -->
+<section class="space-y-6">
+<div class="flex justify-between items-center">
+<h2 class="font-headline text-2xl font-bold tracking-tight">Recent Discoveries</h2>
+<button class="text-primary-container text-sm font-label uppercase tracking-widest flex items-center gap-2">
+                    Archive View <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Artifact Card 1 -->
+<div class="group bg-surface-container-low rounded-lg overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 transition-all duration-300">
+<div class="aspect-video relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Close-up of an ornate rusted brass key with intricate Victorian carvings against a dark velvet background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcq2oPahJQcPiEQE7RIpVEv-lCot9wMT_fYrzo-uLNwjV1OdqS3vB_nvx2prlX7IN9p8o60VVxr5Y4nDHXb0J8VilDmooBgCqdq_Yx9o5RCIObjlIrkjGE2mqtvhDiuuNXfklDAFGli-acKfnCGeTSd4CtX3lQ75sv0cgpc7SwiRGQgxcbW7ftWYe0SX3Xihm_EDPLJ9nhTJc7yHKkgVFcTBmN9CL7HEUhO9a6ngRR8QMt9kYDbtkfkOmE5t4l4ITD3L4tD2QXn94"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<div class="absolute top-3 right-3 bg-surface-container-highest/80 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter text-tertiary-fixed-dim border border-tertiary/20">
+                            Rare Grade
+                        </div>
+</div>
+<div class="p-5 space-y-2">
+<span class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Circa 1884 • Industrial Era</span>
+<h4 class="font-headline text-lg font-bold">The Foreman's Skeleton Key</h4>
+<p class="text-sm text-on-surface-variant line-clamp-2">Found at the Junction 4 site. Believed to unlock the original steam engine chambers.</p>
+</div>
+</div>
+<!-- Artifact Card 2 -->
+<div class="group bg-surface-container-low rounded-lg overflow-hidden border border-outline-variant/10 hover:border-primary-container/30 transition-all duration-300">
+<div class="aspect-video relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Fragment of a weathered hand-painted ceramic tile with cobalt blue patterns, dimly lit with cool studio light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgsWmrA2lEnn9pX_8wIzwjC-Eu1D-FBm5fNJKJ9ImpphsKJuXQcFvsZi9t6lrnwJh1xxrGFfaTqedcNjdOLsdUIq1Rwn1aJ3tC9FweWLigvM_kykizHI9z3GxkUACZtmUcEVi3dPGa7vc0xoA0Bvp2-DUPBMmHgfDO2TQPYMM0VOGSi_lcy7xMvl-sUG0tqEkuooCa4gI8pBONZVstgptlMfCAHo8bcf3IFD7iArlUfpIsuVLA9ix2UbQ7sPCBE-RpxLrIz90SC6Y"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<div class="absolute top-3 right-3 bg-surface-container-highest/80 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant border border-outline-variant/20">
+                            Common Grade
+                        </div>
+</div>
+<div class="p-5 space-y-2">
+<span class="text-[10px] font-label text-on-surface-variant uppercase tracking-widest">Circa 1892 • Decorative Arts</span>
+<h4 class="font-headline text-lg font-bold">Royal Ceramic Shard</h4>
+<p class="text-sm text-on-surface-variant line-clamp-2">A fragment from the prestigious station waiting room tiling discovered near the main hall.</p>
+</div>
+</div>
+<!-- Artifact Card 3 (Relic Style) -->
+<div class="group bg-tertiary-container/5 rounded-lg overflow-hidden border border-tertiary/10 hover:border-tertiary/40 transition-all duration-300 relic-glow">
+<div class="aspect-video relative overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Ancient tarnished pocket watch with exposed clockwork gears and Roman numerals, glowing with soft amber highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCheJl0fQ906DxyQhG33fT9qAszAoar23QLnEZ0kgAGSPM83Iz_kuKhUSDtnrbLzaJ-zPzzv8U5qq-jZFYyGa238FCYN1vZzHHCC4w6Ap_ZCfsLrahtikZCY_7Akc3UHflST1t6SLzuhcnobNRzgesFXvLjL5IDLy2cF-NPYUzJ9eFdPBJMZsAoweMnDstsrA218dbr19rvs474t6g6v-qsf-FTqjxRIiWKQMNlQ7M146TpX9ZEjhUb8X5p1QgiIQgfNST1kYhxHQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<div class="absolute top-3 right-3 bg-tertiary-container/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter text-on-tertiary border border-tertiary">
+                            Legendary Relic
+                        </div>
+</div>
+<div class="p-5 space-y-2">
+<span class="text-[10px] font-label text-tertiary-fixed-dim uppercase tracking-widest">Circa 1870 • High Precision</span>
+<h4 class="font-headline text-lg font-bold">The Timekeeper's Chronos</h4>
+<p class="text-sm text-on-surface-variant line-clamp-2">A rare mechanical masterpiece found in the hidden conductor's quarters. Fully restored.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full rounded-t-[2.5rem] z-50 pb-safe bg-[#353534]/60 backdrop-blur-2xl border-t border-[#3b494c]/15 shadow-[0_-20px_40px_rgba(0,229,255,0.1)]">
+<div class="flex justify-around items-end px-4 h-24 w-full">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center bg-gradient-to-tr from-[#c3f5ff] to-[#00e5ff] text-[#131313] rounded-full p-4 scale-110 -translate-y-4 shadow-[0_0_20px_#00e5ff] transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label text-[10px] tracking-[0.05rem] uppercase font-bold mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#e5e2e1]/50 p-2 hover:text-[#00E5FF] transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label text-[10px] tracking-[0.05rem] uppercase font-bold mt-1">Map</span>
+</a>
+<!-- Central AR Scan Button -->
+<a class="flex flex-col items-center justify-center text-[#e5e2e1]/50 p-2 hover:text-[#00E5FF] transition-colors active:scale-90 duration-150 mb-2" href="#">
+<div class="w-14 h-14 rounded-2xl bg-surface-container-highest border border-primary-container/30 flex items-center justify-center mb-1 group overflow-hidden relative">
+<span class="material-symbols-outlined text-primary-container text-3xl z-10">ink_highlighter</span>
+<div class="absolute inset-0 bg-primary-container/10 group-hover:bg-primary-container/20 transition-colors"></div>
+</div>
+<span class="font-label text-[10px] tracking-[0.05rem] uppercase font-bold">AR Camera</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#e5e2e1]/50 p-2 hover:text-[#00E5FF] transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">extension</span>
+<span class="font-label text-[10px] tracking-[0.05rem] uppercase font-bold mt-1">Quizzes</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#e5e2e1]/50 p-2 hover:text-[#00E5FF] transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label text-[10px] tracking-[0.05rem] uppercase font-bold mt-1">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

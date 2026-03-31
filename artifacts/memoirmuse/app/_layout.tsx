@@ -1,10 +1,18 @@
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+  useFonts as useSpaceGrotesk,
+} from "@expo-google-fonts/space-grotesk";
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+  useFonts as useManrope,
+} from "@expo-google-fonts/manrope";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -32,27 +40,35 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
+  const [sgLoaded] = useSpaceGrotesk({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+  });
+
+  const [mpLoaded] = useManrope({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
   });
 
   const [ready, setReady] = useState(Platform.OS === "web");
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (sgLoaded && mpLoaded) {
       if (Platform.OS !== "web") {
         SplashScreen.hideAsync();
       }
       setReady(true);
     }
-  }, [fontsLoaded, fontError]);
+  }, [sgLoaded, mpLoaded]);
 
   useEffect(() => {
     if (Platform.OS === "web") {
-      const timer = setTimeout(() => setReady(true), 100);
+      const timer = setTimeout(() => setReady(true), 150);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -63,7 +79,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#131313" }}>
             <KeyboardProvider>
               <RootLayoutNav />
             </KeyboardProvider>

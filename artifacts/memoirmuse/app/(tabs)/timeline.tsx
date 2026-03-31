@@ -111,12 +111,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     color: COLORS.white,
   },
   headerSubtitle: {
     fontSize: 14,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: "rgba(255,255,255,0.7)",
     marginTop: 4,
     fontStyle: "italic",
@@ -186,16 +186,16 @@ const styles = StyleSheet.create({
   },
   yearText: {
     fontSize: 12,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   cardTitle: {
     fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Manrope_700Bold",
     color: COLORS.text,
   },
   cardDescription: {
     fontSize: 13,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textSecondary,
     lineHeight: 20,
   },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   cardDetails: {
     fontSize: 14,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Manrope_400Regular",
     color: COLORS.textSecondary,
     lineHeight: 22,
   },

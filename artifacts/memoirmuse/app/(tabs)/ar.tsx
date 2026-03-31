@@ -19,856 +19,718 @@ import * as Haptics from "expo-haptics";
 import COLORS from "@/constants/colors";
 import { AR_MARKERS } from "@/constants/data";
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
-
+const { width: SW, height: SH } = Dimensions.get("window");
 type ScanState = "idle" | "scanning" | "detected";
 
-const ARTIFACT_THEMES = [
-  { primary: "#C8922A", secondary: "#8B5E1A", glow: "#C8922A40", label: "THEATRICAL" },
-  { primary: "#8B2E2E", secondary: "#5C1A1A", glow: "#8B2E2E40", label: "HISTORICAL" },
-  { primary: "#4A7A8C", secondary: "#2E5A6A", glow: "#4A7A8C40", label: "CARTOGRAPHIC" },
-];
-
-function Particle({ delay, radius }: { delay: number; radius: number }) {
-  const angle = useRef(Math.random() * Math.PI * 2).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const x = useRef(new Animated.Value(Math.cos(angle) * radius)).current;
-  const y = useRef(new Animated.Value(Math.sin(angle) * radius)).current;
-  const scale = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const size = 2 + Math.random() * 3;
-    const duration = 2000 + Math.random() * 2000;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.parallel([
-          Animated.sequence([
-            Animated.timing(opacity, { toValue: 0.9, duration: 400, useNativeDriver: true }),
-            Animated.timing(opacity, { toValue: 0.1, duration: duration - 400, useNativeDriver: true }),
-          ]),
-          Animated.timing(scale, { toValue: 1, duration: 400, useNativeDriver: true }),
-        ]),
-        Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, []);
-
-  const px = Math.cos(angle) * radius;
-  const py = Math.sin(angle) * radius;
-  const dotSize = 2 + Math.random() * 3;
-
-  return (
-    <Animated.View
-      style={{
-        position: "absolute",
-        width: dotSize,
-        height: dotSize,
-        borderRadius: dotSize / 2,
-        backgroundColor: COLORS.accent,
-        opacity,
-        transform: [{ translateX: px }, { translateY: py }, { scale }],
-      }}
-    />
-  );
-}
-
-function HolographicModel({
-  marker,
-  theme,
-  visible,
-}: {
-  marker: typeof AR_MARKERS[0];
-  theme: typeof ARTIFACT_THEMES[0];
-  visible: boolean;
-}) {
-  const spinY = useRef(new Animated.Value(0)).current;
-  const floatY = useRef(new Animated.Value(0)).current;
-  const glowScale = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0.4)).current;
-  const ring1Rot = useRef(new Animated.Value(0)).current;
-  const ring2Rot = useRef(new Animated.Value(0)).current;
-  const ring3Scale = useRef(new Animated.Value(0.8)).current;
-  const modelScale = useRef(new Animated.Value(0)).current;
-  const dataOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!visible) {
-      modelScale.setValue(0);
-      dataOpacity.setValue(0);
-      return;
-    }
-
-    Animated.sequence([
-      Animated.spring(modelScale, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 60,
-        friction: 7,
-      }),
-      Animated.timing(dataOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    const spin = Animated.loop(
-      Animated.timing(spinY, {
-        toValue: 1,
-        duration: 8000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-
-    const float = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatY, {
-          toValue: -12,
-          duration: 2200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatY, {
-          toValue: 0,
-          duration: 2200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const glow = Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(glowScale, { toValue: 1.15, duration: 1800, useNativeDriver: true }),
-          Animated.timing(glowOpacity, { toValue: 0.7, duration: 1800, useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(glowScale, { toValue: 1, duration: 1800, useNativeDriver: true }),
-          Animated.timing(glowOpacity, { toValue: 0.35, duration: 1800, useNativeDriver: true }),
-        ]),
-      ])
-    );
-
-    const r1 = Animated.loop(
-      Animated.timing(ring1Rot, { toValue: 1, duration: 4000, easing: Easing.linear, useNativeDriver: true })
-    );
-    const r2 = Animated.loop(
-      Animated.timing(ring2Rot, { toValue: -1, duration: 6000, easing: Easing.linear, useNativeDriver: true })
-    );
-    const r3 = Animated.loop(
-      Animated.sequence([
-        Animated.timing(ring3Scale, { toValue: 1.15, duration: 2000, useNativeDriver: true }),
-        Animated.timing(ring3Scale, { toValue: 0.85, duration: 2000, useNativeDriver: true }),
-      ])
-    );
-
-    spin.start();
-    float.start();
-    glow.start();
-    r1.start();
-    r2.start();
-    r3.start();
-
-    return () => {
-      spin.stop();
-      float.stop();
-      glow.stop();
-      r1.stop();
-      r2.stop();
-      r3.stop();
-    };
-  }, [visible]);
-
-  const spinInterp = spinY.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
-  const ring1Interp = ring1Rot.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
-  const ring2Interp = ring2Rot.interpolate({
-    inputRange: [-1, 0],
-    outputRange: ["-360deg", "0deg"],
-  });
-
-  const particles = Array.from({ length: 18 });
-
-  return (
-    <Animated.View style={[styles.modelContainer, { transform: [{ scale: modelScale }] }]}>
-      <Animated.View style={[styles.modelInner, { transform: [{ translateY: floatY }] }]}>
-        <Animated.View
-          style={[
-            styles.glowOrb,
-            {
-              backgroundColor: theme.glow,
-              transform: [{ scale: glowScale }],
-              opacity: glowOpacity,
-            },
-          ]}
-        />
-
-        {particles.map((_, i) => (
-          <Particle key={i} delay={i * 160} radius={78 + (i % 3) * 20} />
-        ))}
-
-        <Animated.View
-          style={[
-            styles.orbitalRing,
-            {
-              borderColor: theme.primary + "60",
-              transform: [{ rotateZ: ring1Interp }, { rotateX: "72deg" }],
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.orbitalRing2,
-            {
-              borderColor: theme.primary + "40",
-              transform: [{ rotateZ: ring2Interp }, { rotateX: "40deg" }, { rotateY: "30deg" }],
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.outerRingPulse,
-            {
-              borderColor: theme.primary + "25",
-              transform: [{ scale: ring3Scale }],
-            },
-          ]}
-        />
-
-        <Animated.View
-          style={[
-            styles.modelFaceWrap,
-            { transform: [{ perspective: 900 }, { rotateY: spinInterp }] },
-          ]}
-        >
-          <LinearGradient
-            colors={[theme.primary, theme.secondary]}
-            style={styles.modelFace}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.modelFaceInner}>
-              <View style={styles.modelFaceIconRing}>
-                <Feather name={marker.icon as any} size={36} color="#fff" />
-              </View>
-              <Text style={styles.modelFaceTitle} numberOfLines={1}>
-                {marker.title.toUpperCase()}
-              </Text>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-
-        <Animated.View style={[styles.dataPoints, { opacity: dataOpacity }]}>
-          <View style={[styles.dataLine, styles.dataLineLeft]}>
-            <View style={[styles.dataDot, { backgroundColor: theme.primary }]} />
-            <View style={[styles.dataConnector, { backgroundColor: theme.primary + "80" }]} />
-            <View style={[styles.dataChip, { borderColor: theme.primary + "60" }]}>
-              <Text style={[styles.dataChipText, { color: theme.primary }]}>AR</Text>
-            </View>
-          </View>
-          <View style={[styles.dataLine, styles.dataLineRight]}>
-            <View style={[styles.dataChip, { borderColor: theme.primary + "60" }]}>
-              <Text style={[styles.dataChipText, { color: theme.primary }]}>{theme.label}</Text>
-            </View>
-            <View style={[styles.dataConnector, { backgroundColor: theme.primary + "80" }]} />
-            <View style={[styles.dataDot, { backgroundColor: theme.primary }]} />
-          </View>
-        </Animated.View>
-      </Animated.View>
-    </Animated.View>
-  );
-}
+const ARTIFACT_DATA = AR_MARKERS.map((m, i) => ({
+  ...m,
+  era: ["CIRCA 1902 • THEATRICAL ERA", "CIRCA 1896 • REVOLUTIONARY", "CIRCA 1910 • CULTURAL"][i % 3],
+  rarity: ["RARE GRADE", "EPIC RELIC", "COMMON GRADE"][i % 3],
+  rarityColor: [COLORS.tertiaryFixedDim, COLORS.primaryContainer, COLORS.onSurfaceVariant][i % 3],
+  xp: ["+350 XP", "+500 XP", "+150 XP"][i % 3],
+}));
 
 export default function ARScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [markerIndex, setMarkerIndex] = useState(0);
   const [showDetail, setShowDetail] = useState(false);
-  const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const [signalPct, setSignalPct] = useState(0);
 
   const scanLineAnim = useRef(new Animated.Value(0)).current;
-  const infoSlide = useRef(new Animated.Value(100)).current;
-  const infoOpacity = useRef(new Animated.Value(0)).current;
-  const scanRingScale = useRef(new Animated.Value(1)).current;
-  const scanRingOpacity = useRef(new Animated.Value(0)).current;
-  const scanLoop = useRef<Animated.CompositeAnimation | null>(null);
-  const ringLoop = useRef<Animated.CompositeAnimation | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0.4)).current;
+  const cornerBlink = useRef(new Animated.Value(1)).current;
+  const insets = useSafeAreaInsets();
+  const topPad = Platform.OS === "web" ? 20 : insets.top;
 
-  const currentMarker = AR_MARKERS[markerIndex % AR_MARKERS.length];
-  const currentTheme = ARTIFACT_THEMES[markerIndex % ARTIFACT_THEMES.length];
+  const artifact = ARTIFACT_DATA[markerIndex % ARTIFACT_DATA.length];
+
+  const startScanLine = useCallback(() => {
+    scanLineAnim.setValue(0);
+    Animated.loop(
+      Animated.timing(scanLineAnim, {
+        toValue: 1,
+        duration: 2400,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const startPulse = useCallback(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.08, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 0.9, duration: 1200, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(cornerBlink, { toValue: 0.5, duration: 500, useNativeDriver: true }),
+        Animated.timing(cornerBlink, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   useEffect(() => {
-    if (scanState === "scanning") {
-      scanRingOpacity.setValue(1);
-      scanRingScale.setValue(1);
-      ringLoop.current = Animated.loop(
-        Animated.parallel([
-          Animated.timing(scanRingScale, { toValue: 2.4, duration: 1400, useNativeDriver: true }),
-          Animated.timing(scanRingOpacity, { toValue: 0, duration: 1400, useNativeDriver: true }),
-        ])
-      );
-      ringLoop.current.start();
-
-      scanLoop.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scanLineAnim, { toValue: 1, duration: 1600, useNativeDriver: true }),
-          Animated.timing(scanLineAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
-        ])
-      );
-      scanLoop.current.start();
-
-      const t = setTimeout(async () => {
-        scanLoop.current?.stop();
-        ringLoop.current?.stop();
-        if (Platform.OS !== "web") {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-        setScanState("detected");
-        Animated.parallel([
-          Animated.spring(infoSlide, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
-          Animated.timing(infoOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
-        ]).start();
-      }, 3200);
-
-      return () => {
-        clearTimeout(t);
-        scanLoop.current?.stop();
-        ringLoop.current?.stop();
-      };
-    }
-  }, [scanState]);
+    startPulse();
+  }, []);
 
   const handleScan = async () => {
-    if (Platform.OS !== "web") await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    scanLineAnim.setValue(0);
-    infoSlide.setValue(100);
-    infoOpacity.setValue(0);
+    if (scanState !== "idle") return;
+    if (Platform.OS !== "web") await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setScanState("scanning");
+    setSignalPct(0);
+    startScanLine();
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 12 + Math.random() * 15;
+      setSignalPct(Math.min(Math.round(progress), 98));
+      if (progress >= 100) {
+        clearInterval(interval);
+        setSignalPct(98);
+        setScanState("detected");
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    }, 280);
   };
 
-  const handleReset = async () => {
-    if (Platform.OS !== "web") await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const handleReset = () => {
     setScanState("idle");
-    setMarkerIndex((i) => (i + 1) % AR_MARKERS.length);
-    infoSlide.setValue(100);
-    infoOpacity.setValue(0);
+    setSignalPct(0);
+    setMarkerIndex((i) => i + 1);
   };
 
-  const scanLineY = scanLineAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-130, 130],
-  });
-
-  if (Platform.OS !== "web") {
-    if (!permission) return <View style={[styles.bg, styles.center]} />;
-    if (!permission.granted) {
-      return (
-        <View style={[styles.bg, styles.center]}>
-          <View style={styles.permBox}>
-            <View style={styles.permIconRing}>
-              <Feather name="camera-off" size={36} color={COLORS.textMuted} />
-            </View>
-            <Text style={styles.permTitle}>Camera Access Required</Text>
-            <Text style={styles.permText}>
-              MemoirMuse needs your camera to scan AR markers and reveal digital artifacts.
-            </Text>
-            <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
-              <Text style={styles.permBtnText}>Grant Access</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
+  if (Platform.OS !== "web" && !permission?.granted) {
     return (
-      <View style={styles.bg}>
-        <CameraView style={StyleSheet.absoluteFill} facing="back" />
-        <LinearGradient
-          colors={["rgba(0,0,0,0.65)", "transparent", "transparent", "rgba(0,0,0,0.8)"]}
-          style={[StyleSheet.absoluteFill, { paddingTop: topPad }]}
-        >
-          <View style={styles.nativeTopBar}>
-            <Text style={styles.nativeTitle}>AR Scanner</Text>
-            {scanState === "detected" && (
-              <TouchableOpacity style={styles.nativeResetChip} onPress={handleReset}>
-                <Feather name="refresh-cw" size={14} color="#fff" />
-                <Text style={styles.nativeResetText}>Next</Text>
-              </TouchableOpacity>
-            )}
+      <View style={[styles.root, styles.center]}>
+        <View style={styles.permBox}>
+          <View style={styles.permIconRing}>
+            <Feather name="camera" size={36} color={COLORS.primaryContainer} />
           </View>
-
-          {scanState !== "detected" && (
-            <View style={styles.nativeScanFrame}>
-              <View style={[styles.nc, styles.ncTL, { borderColor: currentTheme.primary }]} />
-              <View style={[styles.nc, styles.ncTR, { borderColor: currentTheme.primary }]} />
-              <View style={[styles.nc, styles.ncBL, { borderColor: currentTheme.primary }]} />
-              <View style={[styles.nc, styles.ncBR, { borderColor: currentTheme.primary }]} />
-              {scanState === "scanning" && (
-                <Animated.View
-                  style={[
-                    styles.nativeScanLine,
-                    { backgroundColor: currentTheme.primary, transform: [{ translateY: scanLineY }] },
-                  ]}
-                />
-              )}
-              <Animated.View
-                style={[
-                  styles.nativePingRing,
-                  {
-                    borderColor: currentTheme.primary,
-                    transform: [{ scale: scanRingScale }],
-                    opacity: scanRingOpacity,
-                  },
-                ]}
-              />
-            </View>
-          )}
-
-          {scanState === "detected" && (
-            <View style={styles.nativeModelArea}>
-              <HolographicModel marker={currentMarker} theme={currentTheme} visible />
-            </View>
-          )}
-
-          <View style={styles.nativeBottomArea}>
-            {scanState === "detected" ? (
-              <Animated.View
-                style={[
-                  styles.nativeInfoCard,
-                  { opacity: infoOpacity, transform: [{ translateY: infoSlide }] },
-                ]}
-              >
-                <Text style={styles.nativeInfoBadge}>{currentTheme.label} ARTIFACT</Text>
-                <Text style={styles.nativeInfoTitle}>{currentMarker.title}</Text>
-                <Text style={styles.nativeInfoDesc} numberOfLines={2}>{currentMarker.description}</Text>
-                <TouchableOpacity
-                  style={[styles.nativeDetailBtn, { backgroundColor: currentTheme.primary }]}
-                  onPress={() => setShowDetail(true)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.nativeDetailBtnText}>Explore Artifact</Text>
-                  <Feather name="arrow-right" size={15} color="#fff" />
-                </TouchableOpacity>
-              </Animated.View>
-            ) : (
-              <View style={styles.nativeIdleBottom}>
-                <Text style={styles.nativeScanHint}>
-                  {scanState === "scanning" ? "Scanning for artifacts…" : "Point at a marker and scan"}
-                </Text>
-                <TouchableOpacity
-                  style={[styles.nativeScanBtn, scanState === "scanning" && { backgroundColor: currentTheme.primary }]}
-                  onPress={scanState === "idle" ? handleScan : undefined}
-                  activeOpacity={0.9}
-                >
-                  <Feather name={scanState === "scanning" ? "zap" : "camera"} size={28} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </LinearGradient>
-        <DetailModal visible={showDetail} marker={currentMarker} theme={currentTheme} onClose={() => setShowDetail(false)} onNext={() => { setShowDetail(false); handleReset(); }} />
+          <Text style={styles.permTitle}>Camera Access Required</Text>
+          <Text style={styles.permText}>Enable camera access to scan AR markers at heritage sites.</Text>
+          <TouchableOpacity style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
+            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.permBtnGrad}>
+              <Text style={styles.permBtnText}>Enable Camera</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
+  const scanYInterp = scanLineAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 280],
+  });
+
+  const isNative = Platform.OS !== "web" && permission?.granted;
+
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
+      {isNative ? (
+        <CameraView style={StyleSheet.absoluteFill} facing="back" />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.fakeCam]}>
+          <LinearGradient
+            colors={["#0a1520", "#050810", "#0d1a10"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.gridOverlay} />
+        </View>
+      )}
+
       <LinearGradient
-        colors={[COLORS.primaryDark, COLORS.primary]}
-        style={[styles.webHeader, { paddingTop: topPad + 16 }]}
-      >
-        <Text style={styles.webHeaderTitle}>AR Scanner</Text>
-        <Text style={styles.webHeaderSub}>Holographic Artifact Discovery</Text>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.webScroll}
-        contentContainerStyle={styles.webContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.webViewport}>
-          <View style={styles.webViewportInner}>
-            {[...Array(7)].map((_, i) => (
-              <View key={`h${i}`} style={[styles.gridLine, { top: `${(i + 1) * 12.5}%` as any, left: 0, right: 0, height: 1 }]} />
-            ))}
-            {[...Array(5)].map((_, i) => (
-              <View key={`v${i}`} style={[styles.gridLine, { left: `${(i + 1) * 16.66}%` as any, top: 0, bottom: 0, width: 1 }]} />
-            ))}
-
-            <View style={[styles.wc, styles.wcTL, { borderColor: currentTheme.primary }]} />
-            <View style={[styles.wc, styles.wcTR, { borderColor: currentTheme.primary }]} />
-            <View style={[styles.wc, styles.wcBL, { borderColor: currentTheme.primary }]} />
-            <View style={[styles.wc, styles.wcBR, { borderColor: currentTheme.primary }]} />
-
-            {scanState === "scanning" && (
-              <Animated.View
-                style={[
-                  styles.webScanLine,
-                  { backgroundColor: currentTheme.primary, transform: [{ translateY: scanLineY }] },
-                ]}
-              />
-            )}
-
-            {scanState === "idle" && (
-              <View style={styles.webIdleCenter}>
-                <View style={[styles.webIdleRing, { borderColor: currentTheme.primary + "40" }]}>
-                  <View style={[styles.webIdleRingInner, { borderColor: currentTheme.primary + "20" }]}>
-                    <Feather name="camera" size={40} color={currentTheme.primary + "60"} />
-                  </View>
-                </View>
-                <Text style={styles.webIdleLabel}>Tap to begin scanning</Text>
-              </View>
-            )}
-
-            {scanState === "scanning" && (
-              <View style={styles.webScanCenter}>
-                <Animated.View
-                  style={[
-                    styles.webPingRing,
-                    {
-                      borderColor: currentTheme.primary,
-                      transform: [{ scale: scanRingScale }],
-                      opacity: scanRingOpacity,
-                    },
-                  ]}
-                />
-                <Text style={[styles.webScanLabel, { color: currentTheme.primary }]}>SCANNING</Text>
-                <Text style={styles.webScanSub}>Detecting artifact…</Text>
-              </View>
-            )}
-
-            {scanState === "detected" && (
-              <View style={styles.webModelCenter}>
-                <HolographicModel marker={currentMarker} theme={currentTheme} visible />
-              </View>
-            )}
-
-            <View style={styles.webDotRow}>
-              {AR_MARKERS.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.webDot,
-                    i === markerIndex % AR_MARKERS.length
-                      ? { backgroundColor: currentTheme.primary, width: 20 }
-                      : { backgroundColor: currentTheme.primary + "40" },
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-
-          <View style={[styles.webCtrBar, { borderTopColor: currentTheme.primary + "30" }]}>
-            {scanState === "detected" ? (
-              <View style={styles.webCtrDetected}>
-                <TouchableOpacity
-                  style={[styles.webExploreBtn, { backgroundColor: currentTheme.primary }]}
-                  onPress={() => setShowDetail(true)}
-                  activeOpacity={0.9}
-                >
-                  <Feather name="book-open" size={18} color="#fff" />
-                  <Text style={styles.webExploreBtnText}>Explore Artifact</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.webNextBtn} onPress={handleReset} activeOpacity={0.85}>
-                  <Feather name="refresh-cw" size={16} color={currentTheme.primary} />
-                  <Text style={[styles.webNextBtnText, { color: currentTheme.primary }]}>Scan Next</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[
-                  styles.webScanBtn,
-                  { backgroundColor: scanState === "scanning" ? currentTheme.primary : COLORS.primary },
-                ]}
-                onPress={scanState === "idle" ? handleScan : undefined}
-                activeOpacity={0.9}
-              >
-                <Feather name={scanState === "scanning" ? "zap" : "camera"} size={20} color="#fff" />
-                <Text style={styles.webScanBtnText}>
-                  {scanState === "scanning" ? "Scanning…" : "Scan Artifact"}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {scanState === "detected" && (
-          <Animated.View
-            style={[styles.webInfoCard, { opacity: infoOpacity, transform: [{ translateY: infoSlide }] }]}
-          >
-            <View style={styles.webInfoTop}>
-              <View style={[styles.webInfoIconBox, { backgroundColor: currentTheme.primary + "18" }]}>
-                <Feather name={currentMarker.icon as any} size={24} color={currentTheme.primary} />
-              </View>
-              <View style={styles.webInfoMeta}>
-                <Text style={[styles.webInfoBadge, { color: currentTheme.primary }]}>
-                  {currentTheme.label} ARTIFACT
-                </Text>
-                <Text style={styles.webInfoTitle}>{currentMarker.title}</Text>
-              </View>
-            </View>
-            <Text style={styles.webInfoDesc}>{currentMarker.description}</Text>
-            <View style={styles.webInfoDivider} />
-            <Text style={styles.webInfoBody}>{currentMarker.details}</Text>
-          </Animated.View>
-        )}
-
-        <View style={styles.webTip}>
-          <Feather name="smartphone" size={15} color={COLORS.textMuted} />
-          <Text style={styles.webTipText}>
-            On mobile, point your camera at AR markers at heritage museums and sites to see live 3D artifact projections.
-          </Text>
-        </View>
-
-        <View style={styles.webArtifactList}>
-          <Text style={styles.webArtifactListTitle}>ARTIFACT LIBRARY</Text>
-          {AR_MARKERS.map((m, i) => {
-            const theme = ARTIFACT_THEMES[i % ARTIFACT_THEMES.length];
-            const scanned = i < (markerIndex % AR_MARKERS.length) + (scanState === "detected" ? 1 : 0);
-            return (
-              <View key={m.id} style={styles.webArtifactRow}>
-                <View style={[styles.webArtifactIcon, { backgroundColor: theme.primary + "18" }]}>
-                  <Feather name={m.icon as any} size={18} color={theme.primary} />
-                </View>
-                <View style={styles.webArtifactMeta}>
-                  <Text style={styles.webArtifactName}>{m.title}</Text>
-                  <Text style={[styles.webArtifactTag, { color: theme.primary }]}>{theme.label}</Text>
-                </View>
-                {scanned ? (
-                  <View style={styles.webScannedBadge}>
-                    <Feather name="check" size={11} color={COLORS.success} />
-                    <Text style={styles.webScannedText}>Scanned</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.webUnscannedText}>Pending</Text>
-                )}
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-
-      <DetailModal
-        visible={showDetail}
-        marker={currentMarker}
-        theme={currentTheme}
-        onClose={() => setShowDetail(false)}
-        onNext={() => { setShowDetail(false); handleReset(); }}
+        colors={["rgba(19,19,19,0.65)", "transparent", "rgba(19,19,19,0.75)"]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
       />
+
+      <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
+        <View style={styles.topLeft}>
+          <View style={styles.avatarRing}>
+            <Feather name="user" size={16} color={COLORS.primaryContainer} />
+          </View>
+          <View>
+            <Text style={styles.topTitle}>THE CHRONOS INTERFACE</Text>
+            <Text style={styles.topSub}>Operator Level 24</Text>
+          </View>
+        </View>
+        <View style={styles.xpChip}>
+          <Feather name="star" size={12} color={COLORS.tertiaryFixedDim} />
+          <Text style={styles.xpText}>1,250 XP</Text>
+        </View>
+      </View>
+
+      {scanState === "idle" && (
+        <View style={styles.instructions}>
+          <Text style={styles.instrTitle}>ENVIRONMENTAL SCAN</Text>
+          <Text style={styles.instrSub}>Scan a marker to discover Pedro S. Tolentino's legacy.</Text>
+        </View>
+      )}
+
+      {scanState === "scanning" && (
+        <View style={styles.instructions}>
+          <Text style={[styles.instrTitle, { color: COLORS.primaryContainer }]}>SCANNING...</Text>
+          <Text style={styles.instrSub}>Hold steady — artifact data initializing.</Text>
+        </View>
+      )}
+
+      {scanState === "detected" && (
+        <View style={styles.instructions}>
+          <Text style={[styles.instrTitle, { color: COLORS.tertiaryFixedDim }]}>ARTIFACT DETECTED</Text>
+          <Text style={styles.instrSub}>{artifact.title}</Text>
+        </View>
+      )}
+
+      <View style={styles.reticleWrap}>
+        <Animated.View style={[styles.reticle, { opacity: cornerBlink }]}>
+          <View style={[styles.corner, styles.cornerTL, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
+          <View style={[styles.corner, styles.cornerTR, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
+          <View style={[styles.corner, styles.cornerBL, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
+          <View style={[styles.corner, styles.cornerBR, { borderColor: scanState === "detected" ? COLORS.tertiaryFixedDim : COLORS.primaryContainer }]} />
+
+          {scanState === "scanning" && (
+            <Animated.View
+              style={[
+                styles.scanLine,
+                { transform: [{ translateY: scanYInterp }] },
+              ]}
+            />
+          )}
+
+          {scanState === "idle" && (
+            <View style={styles.reticleCenter}>
+              <Animated.View style={[styles.reticleDot, { transform: [{ scale: pulseAnim }], opacity: glowAnim }]} />
+            </View>
+          )}
+
+          {scanState === "detected" && (
+            <View style={styles.detectedBurst}>
+              <Animated.View style={[styles.detectedRing, { transform: [{ scale: pulseAnim }] }]} />
+              <Feather name="check" size={32} color={COLORS.tertiaryFixedDim} />
+            </View>
+          )}
+        </Animated.View>
+      </View>
+
+      <View style={styles.rightActions}>
+        <TouchableOpacity style={styles.sideBtn}>
+          <Feather name="sun" size={22} color={COLORS.tertiaryFixedDim} />
+          <Text style={styles.sideBtnLabel}>Hint</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sideBtn}>
+          <Feather name="zap" size={22} color={COLORS.primaryContainer} />
+          <Text style={styles.sideBtnLabel}>Flash</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sideBtn}>
+          <Feather name="archive" size={22} color={COLORS.onSurface} />
+          <Text style={styles.sideBtnLabel}>Relics</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.bottomHUD}>
+        <View style={styles.trackingRow}>
+          <Feather name="radio" size={13} color={COLORS.primaryContainer} />
+          <Text style={styles.trackingLabel}>TRACKING ACTIVE</Text>
+        </View>
+        <View style={styles.signalTrack}>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryContainer]}
+            style={[styles.signalFill, { width: `${signalPct}%` }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+        </View>
+        <Text style={styles.signalLabel}>Signal Strength: {signalPct}%</Text>
+      </View>
+
+      <View style={styles.bottomActions}>
+        {scanState === "idle" && (
+          <TouchableOpacity style={styles.scanBtn} onPress={handleScan} activeOpacity={0.85}>
+            <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.scanBtnGrad}>
+              <Feather name="camera" size={22} color="#00363d" />
+              <Text style={styles.scanBtnText}>BEGIN SCAN</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+        {scanState === "scanning" && (
+          <View style={styles.scanningBar}>
+            <Animated.View style={[styles.scanningIndicator, { transform: [{ scale: pulseAnim }] }]} />
+            <Text style={styles.scanningText}>ANALYZING MARKER DATA...</Text>
+          </View>
+        )}
+        {scanState === "detected" && (
+          <View style={styles.detectedActions}>
+            <TouchableOpacity
+              style={styles.exploreBtn}
+              onPress={() => setShowDetail(true)}
+              activeOpacity={0.85}
+            >
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.exploreBtnGrad}>
+                <Feather name="eye" size={18} color="#00363d" />
+                <Text style={styles.exploreBtnText}>Explore Artifact</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.nextBtn} onPress={handleReset} activeOpacity={0.8}>
+              <Feather name="rotate-ccw" size={18} color={COLORS.primaryContainer} />
+              <Text style={styles.nextBtnText}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      <Modal visible={showDetail} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowDetail(false)}>
+        <View style={styles.modalRoot}>
+          <LinearGradient colors={[COLORS.surfaceContainer, COLORS.background]} style={StyleSheet.absoluteFill} />
+          <View style={styles.modalTopBar}>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setShowDetail(false)}>
+              <Feather name="x" size={18} color={COLORS.onSurface} />
+            </TouchableOpacity>
+            <Text style={styles.modalTopTitle}>ARTIFACT DETAIL</Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalArtifactViewer}>
+              <View style={styles.modalGlowOrb} />
+              <View style={styles.modalIconRing}>
+                <Feather name={artifact.icon as any} size={44} color={COLORS.primaryContainer} />
+              </View>
+              <View style={styles.modalTagRow}>
+                <View style={styles.modalEraTag}>
+                  <Text style={styles.modalEraText}>{artifact.era}</Text>
+                </View>
+                <View style={[styles.modalRarityTag, { borderColor: artifact.rarityColor + "40" }]}>
+                  <Text style={[styles.modalRarityText, { color: artifact.rarityColor }]}>{artifact.rarity}</Text>
+                </View>
+              </View>
+              <Text style={styles.modalTitle}>{artifact.title}</Text>
+              <Text style={styles.modalDesc}>{artifact.description}</Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalPlayBtn} activeOpacity={0.85}>
+                  <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.modalPlayGrad}>
+                    <Feather name="play" size={16} color="#00363d" />
+                    <Text style={styles.modalPlayText}>PLAY NARRATION</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalShareBtn}>
+                  <Feather name="share" size={20} color={COLORS.primaryContainer} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalShareBtn}>
+                  <Feather name="bookmark" size={20} color={COLORS.primaryContainer} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalSectionLabel}>HISTORICAL CONTEXT</Text>
+              <View style={styles.modalContextCard}>
+                <View style={styles.modalContextBar} />
+                <Text style={styles.modalContextText}>{artifact.details}</Text>
+              </View>
+
+              <View style={styles.modalXpCard}>
+                <Feather name="award" size={24} color={COLORS.tertiaryFixedDim} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalXpTitle}>Chronos Challenge Unlocked</Text>
+                  <Text style={styles.modalXpSub}>Answer questions about this artifact to earn {artifact.xp}.</Text>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFoot}>
+            <TouchableOpacity
+              style={styles.modalNextBtn}
+              onPress={() => { setShowDetail(false); handleReset(); }}
+              activeOpacity={0.85}
+            >
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.modalNextGrad}>
+                <Feather name="camera" size={18} color="#00363d" />
+                <Text style={styles.modalNextText}>Scan Next Artifact</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-function DetailModal({
-  visible,
-  marker,
-  theme,
-  onClose,
-  onNext,
-}: {
-  visible: boolean;
-  marker: typeof AR_MARKERS[0];
-  theme: typeof ARTIFACT_THEMES[0];
-  onClose: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={styles.modalWrap}>
-        <LinearGradient colors={[theme.secondary, theme.primary]} style={styles.modalHead}>
-          <TouchableOpacity style={styles.modalX} onPress={onClose}>
-            <Feather name="x" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.modalIconRing}>
-            <Feather name={marker.icon as any} size={34} color="#fff" />
-          </View>
-          <View style={styles.modalBadge}>
-            <Feather name="zap" size={10} color="#fff" />
-            <Text style={styles.modalBadgeText}>AR HOLOGRAPHIC ARTIFACT</Text>
-          </View>
-          <Text style={styles.modalTitle}>{marker.title}</Text>
-        </LinearGradient>
-
-        <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-          <View style={styles.modalSection}>
-            <Text style={styles.modalSectionLabel}>ABOUT THIS ARTIFACT</Text>
-            <Text style={styles.modalSectionText}>{marker.description}</Text>
-          </View>
-          <View style={styles.modalSep} />
-          <View style={styles.modalSection}>
-            <Text style={styles.modalSectionLabel}>HISTORICAL CONTEXT</Text>
-            <Text style={styles.modalSectionText}>{marker.details}</Text>
-          </View>
-          <View style={styles.modalNote}>
-            <Feather name="archive" size={14} color={theme.primary} />
-            <Text style={styles.modalNoteText}>
-              This artifact is part of the Pedro S. Tolentino Digital Heritage Collection — preserved and brought to life through augmented reality.
-            </Text>
-          </View>
-        </ScrollView>
-
-        <View style={styles.modalFoot}>
-          <TouchableOpacity
-            style={[styles.modalNextBtn, { backgroundColor: theme.primary }]}
-            onPress={onNext}
-            activeOpacity={0.9}
-          >
-            <Feather name="camera" size={18} color="#fff" />
-            <Text style={styles.modalNextText}>Scan Next Artifact</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-const S = 160;
+const RETICLE_SIZE = 280;
+const CORNER_SIZE = 48;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  bg: { flex: 1, backgroundColor: "#050810" },
+  root: { flex: 1, backgroundColor: "#050810" },
   center: { justifyContent: "center", alignItems: "center" },
+  fakeCam: { backgroundColor: "#050810" },
+  gridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundImage: Platform.OS === "web"
+      ? "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)"
+      : undefined,
+    backgroundSize: Platform.OS === "web" ? "40px 40px" : undefined,
+  } as any,
+
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 40,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: "rgba(19,19,19,0.6)",
+  },
+  topLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  avatarRing: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: COLORS.primaryContainer,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.surfaceContainerHigh,
+  },
+  topTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primaryContainer, letterSpacing: 1.5 },
+  topSub: { fontSize: 9, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, letterSpacing: 1, textTransform: "uppercase" },
+  xpChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(53,53,52,0.6)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "25",
+  },
+  xpText: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primaryContainer },
+
+  instructions: {
+    position: "absolute",
+    top: Platform.OS === "web" ? 100 : 130,
+    left: 20,
+    right: 20,
+    zIndex: 30,
+    backgroundColor: "rgba(53,53,52,0.7)",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "20",
+  },
+  instrTitle: {
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.onSurface,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  instrSub: {
+    fontSize: 12,
+    fontFamily: "Manrope_400Regular",
+    color: COLORS.onSurfaceVariant,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+
+  reticleWrap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 20,
+    pointerEvents: "none",
+  },
+  reticle: {
+    width: RETICLE_SIZE,
+    height: RETICLE_SIZE,
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  corner: { position: "absolute", width: CORNER_SIZE, height: CORNER_SIZE, borderWidth: 3.5 },
+  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  scanLine: {
+    position: "absolute",
+    top: 0,
+    left: 12,
+    right: 12,
+    height: 2,
+    backgroundColor: COLORS.primaryContainer,
+    shadowColor: COLORS.primaryContainer,
+    shadowOpacity: 0.9,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  reticleCenter: { justifyContent: "center", alignItems: "center" },
+  reticleDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primaryContainer,
+    shadowColor: COLORS.primaryContainer,
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  detectedBurst: { justifyContent: "center", alignItems: "center", gap: 0 },
+  detectedRing: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: COLORS.tertiaryFixedDim,
+    shadowColor: COLORS.tertiaryFixedDim,
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+  },
+
+  rightActions: {
+    position: "absolute",
+    right: 16,
+    top: "50%",
+    marginTop: -90,
+    zIndex: 30,
+    gap: 12,
+  },
+  sideBtn: {
+    width: 56,
+    height: 56,
+    backgroundColor: "rgba(53,53,52,0.7)",
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "25",
+    gap: 2,
+  },
+  sideBtnLabel: { fontSize: 7, fontFamily: "Manrope_700Bold", color: COLORS.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 0.5 },
+
+  bottomHUD: {
+    position: "absolute",
+    left: 20,
+    bottom: 130,
+    zIndex: 30,
+    gap: 6,
+    pointerEvents: "none",
+  },
+  trackingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  trackingLabel: { fontSize: 10, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 2, textTransform: "uppercase" },
+  signalTrack: { width: 120, height: 3, backgroundColor: COLORS.surfaceContainerHighest, borderRadius: 2, overflow: "hidden" },
+  signalFill: { height: "100%", borderRadius: 2 },
+  signalLabel: { fontSize: 9, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, letterSpacing: 1.5, textTransform: "uppercase" },
+
+  bottomActions: {
+    position: "absolute",
+    bottom: 94,
+    left: 20,
+    right: 20,
+    zIndex: 30,
+  },
+  scanBtn: { borderRadius: 16, overflow: "hidden" },
+  scanBtnGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 18,
+  },
+  scanBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 2, textTransform: "uppercase" },
+  scanningBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    backgroundColor: "rgba(53,53,52,0.8)",
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "20",
+  },
+  scanningIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primaryContainer,
+    shadowColor: COLORS.primaryContainer,
+    shadowOpacity: 0.9,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  scanningText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer, letterSpacing: 2 },
+  detectedActions: { flexDirection: "row", gap: 10 },
+  exploreBtn: { flex: 1, borderRadius: 16, overflow: "hidden" },
+  exploreBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
+  exploreBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1 },
+  nextBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryContainer + "50",
+    backgroundColor: COLORS.primaryContainer + "10",
+  },
+  nextBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer },
 
   permBox: { alignItems: "center", gap: 20, paddingHorizontal: 40 },
-  permIconRing: { width: 96, height: 96, borderRadius: 48, backgroundColor: COLORS.backgroundDark, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: COLORS.borderLight },
-  permTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: COLORS.white, textAlign: "center" },
-  permText: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 22 },
-  permBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 36, paddingVertical: 14, borderRadius: 14 },
-  permBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  permIconRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryContainer + "40",
+  },
+  permTitle: { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
+  permText: { fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 22 },
+  permBtn: { borderRadius: 14, overflow: "hidden" },
+  permBtnGrad: { paddingHorizontal: 36, paddingVertical: 14 },
+  permBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", textTransform: "uppercase", letterSpacing: 1 },
 
-  nativeTopBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16 },
-  nativeTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff" },
-  nativeResetChip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.18)", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  nativeResetText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  nativeScanFrame: { width: 260, height: 260, alignSelf: "center", justifyContent: "center", alignItems: "center" },
-  nc: { position: "absolute", width: 40, height: 40, borderWidth: 3 },
-  ncTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
-  ncTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
-  ncBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
-  ncBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
-  nativeScanLine: { position: "absolute", left: 12, right: 12, height: 2, shadowOpacity: 0.9, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
-  nativePingRing: { position: "absolute", width: 100, height: 100, borderRadius: 50, borderWidth: 2 },
-  nativeModelArea: { flex: 1, justifyContent: "center", alignItems: "center" },
-  nativeBottomArea: { paddingHorizontal: 20, paddingBottom: 50 },
-  nativeInfoCard: { backgroundColor: "rgba(10,10,18,0.92)", borderRadius: 20, padding: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", gap: 10 },
-  nativeInfoBadge: { fontSize: 10, fontFamily: "Inter_700Bold", color: COLORS.accent, letterSpacing: 2 },
-  nativeInfoTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff" },
-  nativeInfoDesc: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", lineHeight: 20 },
-  nativeDetailBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 14, marginTop: 4 },
-  nativeDetailBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  nativeIdleBottom: { alignItems: "center", gap: 16 },
-  nativeScanHint: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.6)", textAlign: "center" },
-  nativeScanBtn: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: "center", alignItems: "center", borderWidth: 3, borderColor: "rgba(255,255,255,0.25)" },
-
-  modelContainer: { width: S * 2, height: S * 2, justifyContent: "center", alignItems: "center" },
-  modelInner: { width: S * 2, height: S * 2, justifyContent: "center", alignItems: "center" },
-  glowOrb: { position: "absolute", width: S * 1.5, height: S * 1.5, borderRadius: S * 0.75 },
-  orbitalRing: { position: "absolute", width: S * 1.8, height: S * 1.8, borderRadius: S * 0.9, borderWidth: 1.5 },
-  orbitalRing2: { position: "absolute", width: S * 2.1, height: S * 2.1, borderRadius: S * 1.05, borderWidth: 1 },
-  outerRingPulse: { position: "absolute", width: S * 2.6, height: S * 2.6, borderRadius: S * 1.3, borderWidth: 1 },
-  modelFaceWrap: { width: S, height: S, borderRadius: 24, overflow: "hidden", shadowColor: "#000", shadowRadius: 30, shadowOpacity: 0.6, shadowOffset: { width: 0, height: 10 } },
-  modelFace: { flex: 1, justifyContent: "center", alignItems: "center" },
-  modelFaceInner: { alignItems: "center", gap: 12 },
-  modelFaceIconRing: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" },
-  modelFaceTitle: { fontSize: 10, fontFamily: "Inter_700Bold", color: "rgba(255,255,255,0.85)", letterSpacing: 1.5, paddingHorizontal: 8 },
-  dataPoints: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "center" },
-  dataLine: { position: "absolute", flexDirection: "row", alignItems: "center", gap: 4 },
-  dataLineLeft: { left: 0, top: "30%" as any },
-  dataLineRight: { right: 0, top: "62%" as any },
-  dataDot: { width: 6, height: 6, borderRadius: 3 },
-  dataConnector: { width: 24, height: 1 },
-  dataChip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  dataChipText: { fontSize: 8, fontFamily: "Inter_700Bold", letterSpacing: 1 },
-
-  webHeader: { paddingHorizontal: 28, paddingBottom: 24 },
-  webHeaderTitle: { fontSize: 30, fontFamily: "Inter_700Bold", color: "#fff" },
-  webHeaderSub: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)", marginTop: 6, fontStyle: "italic" },
-  webScroll: { flex: 1 },
-  webContent: { paddingBottom: 160 },
-
-  webViewport: { margin: 20, borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: "#222", backgroundColor: "#080C14" },
-  webViewportInner: { height: 340, position: "relative", justifyContent: "center", alignItems: "center" },
-  gridLine: { position: "absolute", backgroundColor: "rgba(255,255,255,0.03)" },
-  wc: { position: "absolute", width: 30, height: 30 },
-  wcTL: { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 4 },
-  wcTR: { top: 16, right: 16, borderTopWidth: 2, borderRightWidth: 2, borderTopRightRadius: 4 },
-  wcBL: { bottom: 16, left: 16, borderBottomWidth: 2, borderLeftWidth: 2, borderBottomLeftRadius: 4 },
-  wcBR: { bottom: 16, right: 16, borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 4 },
-  webScanLine: { position: "absolute", left: 20, right: 20, height: 2, shadowOpacity: 0.8, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  webPingRing: { position: "absolute", width: 90, height: 90, borderRadius: 45, borderWidth: 2 },
-
-  webIdleCenter: { alignItems: "center", gap: 14 },
-  webIdleRing: { width: 110, height: 110, borderRadius: 55, borderWidth: 1, justifyContent: "center", alignItems: "center" },
-  webIdleRingInner: { width: 82, height: 82, borderRadius: 41, borderWidth: 1, justifyContent: "center", alignItems: "center" },
-  webIdleLabel: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.35)" },
-
-  webScanCenter: { alignItems: "center", gap: 10 },
-  webScanLabel: { fontSize: 12, fontFamily: "Inter_700Bold", letterSpacing: 3 },
-  webScanSub: { fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.4)" },
-
-  webModelCenter: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  webDotRow: { position: "absolute", bottom: 12, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 6 },
-  webDot: { height: 6, borderRadius: 3, width: 6 },
-
-  webCtrBar: { padding: 16, borderTopWidth: 1, backgroundColor: "#0D1220" },
-  webCtrDetected: { flexDirection: "row", gap: 10 },
-  webExploreBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 14, borderRadius: 14 },
-  webExploreBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  webNextBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.primary + "50", backgroundColor: COLORS.primary + "12" },
-  webNextBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  webScanBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 14, borderRadius: 14 },
-  webScanBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
-
-  webInfoCard: { marginHorizontal: 20, marginTop: 8, backgroundColor: COLORS.surface, borderRadius: 20, padding: 22, borderWidth: 1, borderColor: COLORS.borderLight, gap: 14, shadowColor: COLORS.cardShadow, shadowRadius: 16, shadowOpacity: 1, shadowOffset: { width: 0, height: 4 } },
-  webInfoTop: { flexDirection: "row", alignItems: "center", gap: 14 },
-  webInfoIconBox: { width: 52, height: 52, borderRadius: 26, justifyContent: "center", alignItems: "center" },
-  webInfoMeta: { flex: 1, gap: 3 },
-  webInfoBadge: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 2 },
-  webInfoTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: COLORS.text },
-  webInfoDesc: { fontSize: 14, fontFamily: "Inter_500Medium", color: COLORS.textSecondary, lineHeight: 22 },
-  webInfoDivider: { height: 1, backgroundColor: COLORS.borderLight },
-  webInfoBody: { fontSize: 14, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 24 },
-
-  webTip: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginHorizontal: 20, marginTop: 20, padding: 16, backgroundColor: COLORS.backgroundDark, borderRadius: 14, borderWidth: 1, borderColor: COLORS.borderLight },
-  webTipText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", color: COLORS.textMuted, lineHeight: 19 },
-
-  webArtifactList: { marginHorizontal: 20, marginTop: 20, gap: 10 },
-  webArtifactListTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: COLORS.primary, letterSpacing: 2, marginBottom: 4 },
-  webArtifactRow: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.borderLight },
-  webArtifactIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
-  webArtifactMeta: { flex: 1, gap: 2 },
-  webArtifactName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: COLORS.text },
-  webArtifactTag: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5 },
-  webScannedBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: COLORS.success + "12", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  webScannedText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: COLORS.success },
-  webUnscannedText: { fontSize: 11, fontFamily: "Inter_400Regular", color: COLORS.textMuted },
-
-  modalWrap: { flex: 1, backgroundColor: COLORS.background },
-  modalHead: { padding: 28, paddingTop: 52, alignItems: "center", gap: 12 },
-  modalX: { alignSelf: "flex-end", width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
-  modalIconRing: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.18)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
-  modalBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  modalBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 2 },
-  modalTitle: { fontSize: 24, fontFamily: "Inter_700Bold", color: "#fff", textAlign: "center" },
-  modalBody: { flex: 1, padding: 28 },
-  modalSection: { gap: 10 },
-  modalSectionLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: COLORS.primary, letterSpacing: 2 },
-  modalSectionText: { fontSize: 15, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 26 },
-  modalSep: { height: 1, backgroundColor: COLORS.borderLight, marginVertical: 24 },
-  modalNote: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 24, padding: 18, backgroundColor: COLORS.surfaceWarm, borderRadius: 14, borderWidth: 1, borderColor: COLORS.borderLight },
-  modalNoteText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: COLORS.textSecondary, lineHeight: 21 },
-  modalFoot: { padding: 24, paddingBottom: 48 },
-  modalNextBtn: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, paddingVertical: 17, borderRadius: 17 },
-  modalNextText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  modalRoot: { flex: 1, backgroundColor: COLORS.background },
+  modalTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.outlineVariant + "20",
+  },
+  modalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceContainerHighest,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalTopTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurfaceVariant, letterSpacing: 2.5 },
+  modalScroll: { flex: 1 },
+  modalArtifactViewer: {
+    alignItems: "center",
+    padding: 32,
+    paddingTop: 40,
+    gap: 16,
+    position: "relative",
+  },
+  modalGlowOrb: {
+    position: "absolute",
+    top: 0,
+    left: "50%",
+    marginLeft: -80,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: COLORS.primaryContainer + "0a",
+  },
+  modalIconRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: COLORS.primaryContainer + "30",
+    shadowColor: COLORS.primaryContainer,
+    shadowOpacity: 0.25,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  modalTagRow: { flexDirection: "row", gap: 8 },
+  modalEraTag: {
+    backgroundColor: COLORS.primaryContainer + "15",
+    borderWidth: 1,
+    borderColor: COLORS.primaryContainer + "30",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  modalEraText: { fontSize: 9, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 1.5, textTransform: "uppercase" },
+  modalRarityTag: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  modalRarityText: { fontSize: 9, fontFamily: "Manrope_700Bold", letterSpacing: 1.5, textTransform: "uppercase" },
+  modalTitle: { fontSize: 26, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
+  modalDesc: { fontSize: 15, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 24 },
+  modalActions: { flexDirection: "row", gap: 10, alignItems: "center", marginTop: 6 },
+  modalPlayBtn: { flex: 1, borderRadius: 999, overflow: "hidden" },
+  modalPlayGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14 },
+  modalPlayText: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 2, textTransform: "uppercase" },
+  modalShareBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.surfaceContainerHighest,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "30",
+  },
+  modalBody: { paddingHorizontal: 24, paddingBottom: 40, gap: 20 },
+  modalSectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primary, letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 8 },
+  modalContextCard: {
+    flexDirection: "row",
+    gap: 14,
+    backgroundColor: "rgba(53,53,52,0.5)",
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "15",
+  },
+  modalContextBar: { width: 3, backgroundColor: COLORS.primaryContainer, borderRadius: 2, alignSelf: "stretch" },
+  modalContextText: { flex: 1, fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 24 },
+  modalXpCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: COLORS.tertiaryContainer + "10",
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.tertiaryContainer + "25",
+  },
+  modalXpTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.tertiary },
+  modalXpSub: { fontSize: 12, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 18, marginTop: 4 },
+  modalFoot: { padding: 20, paddingBottom: Platform.OS === "ios" ? 36 : 20 },
+  modalNextBtn: { borderRadius: 16, overflow: "hidden" },
+  modalNextGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 17 },
+  modalNextText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1, textTransform: "uppercase" },
 });

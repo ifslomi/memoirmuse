@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   Animated,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -15,404 +16,382 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import COLORS from "@/constants/colors";
 
-const FEATURES = [
-  {
-    id: "timeline",
-    label: "Timeline",
-    description: "Journey through key life milestones",
-    icon: "clock" as const,
-    route: "/(tabs)/timeline" as const,
-    gradient: [COLORS.primary, COLORS.primaryDark] as [string, string],
-  },
-  {
-    id: "ar",
-    label: "AR Scanner",
-    description: "Reveal 3D holographic artifacts",
-    icon: "camera" as const,
-    route: "/(tabs)/ar" as const,
-    gradient: [COLORS.accent, "#7A5A14"] as [string, string],
-  },
-  {
-    id: "gallery",
-    label: "Gallery",
-    description: "Explore the historical collection",
-    icon: "image" as const,
-    route: "/(tabs)/gallery" as const,
-    gradient: ["#4A7A8C", "#2E5A6A"] as [string, string],
-  },
-  {
-    id: "quiz",
-    label: "Historia Quiz",
-    description: "Test your heritage knowledge",
-    icon: "help-circle" as const,
-    route: "/(tabs)/quiz" as const,
-    gradient: [COLORS.primaryLight, COLORS.primaryDark] as [string, string],
-  },
-  {
-    id: "map",
-    label: "Heritage Map",
-    description: "Discover cultural sites in Marikina",
-    icon: "map-pin" as const,
-    route: "/(tabs)/map" as const,
-    gradient: ["#6B4A8C", "#4A2E6A"] as [string, string],
-  },
+const { width: W } = Dimensions.get("window");
+
+const QUICK_ACTIONS = [
+  { id: "map", label: "Map", desc: "Heritage locations", icon: "map-pin" as const, route: "/(tabs)/map" as const },
+  { id: "quiz", label: "Quizzes", desc: "Test your knowledge", icon: "help-circle" as const, route: "/(tabs)/quiz" as const },
+  { id: "gallery", label: "Achievements", desc: "8 unlocked", icon: "award" as const, route: "/(tabs)/gallery" as const },
 ];
 
-function FeatureCard({
-  item,
-  index,
-  onPress,
-}: {
-  item: typeof FEATURES[0];
-  index: number;
-  onPress: (route: string) => void;
-}) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(18)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 380,
-        delay: 200 + index * 70,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 380,
-        delay: 200 + index * 70,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={[
-        styles.cardWrap,
-        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-      ]}
-    >
-      <TouchableOpacity
-        style={styles.cardInner}
-        onPress={() => onPress(item.route)}
-        activeOpacity={0.88}
-      >
-        <LinearGradient
-          colors={item.gradient}
-          style={styles.cardGrad}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.cardIconBox}>
-            <Feather name={item.icon} size={26} color="#fff" />
-          </View>
-          <View style={styles.cardTextWrap}>
-            <Text style={styles.cardLabel}>{item.label}</Text>
-            <Text style={styles.cardDesc}>{item.description}</Text>
-          </View>
-          <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.5)" />
-        </LinearGradient>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
+const DISCOVERIES = [
+  {
+    id: "1",
+    era: "CIRCA 1902 • THEATRICAL ERA",
+    grade: "RARE GRADE",
+    gradeColor: COLORS.tertiaryFixedDim,
+    title: "The Kahapon, Ngayon at Bukas Script",
+    desc: "A hand-written draft of Tolentino's most celebrated allegorical play discovered at the Marikina archive.",
+  },
+  {
+    id: "2",
+    era: "CIRCA 1896 • REVOLUTION",
+    grade: "EPIC RELIC",
+    gradeColor: COLORS.primaryContainer,
+    title: "The Nationalist Manifesto",
+    desc: "A rare document outlining Tolentino's vision for Filipino cultural sovereignty through the arts.",
+  },
+  {
+    id: "3",
+    era: "CIRCA 1858 • EARLY LIFE",
+    grade: "COMMON GRADE",
+    gradeColor: COLORS.onSurfaceVariant,
+    title: "The Tolentino Birth Registry",
+    desc: "Parish record from Quingua, Bulacan confirming Pedro S. Tolentino's birth date and lineage.",
+  },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 0 : insets.top;
-  const heroAnim = useRef(new Animated.Value(0)).current;
-  const statsAnim = useRef(new Animated.Value(0)).current;
+  const topPad = Platform.OS === "web" ? 20 : insets.top;
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const contentFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.stagger(100, [
-      Animated.timing(heroAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(statsAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+    Animated.sequence([
+      Animated.timing(headerFade, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(contentFade, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  const handlePress = async (route: string) => {
-    if (Platform.OS !== "web") {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+  const go = async (route: string) => {
+    if (Platform.OS !== "web") await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route as any);
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={[{ paddingTop: topPad, paddingBottom: 130 }]}
-    >
-      <LinearGradient
-        colors={[COLORS.primaryDark, COLORS.primary, "#A84040"]}
-        style={styles.hero}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Animated.View style={[styles.heroInner, { opacity: heroAnim }]}>
-          <Text style={styles.heroApp}>MEMOIRMUSE</Text>
-          <View style={styles.heroDivLine} />
-          <Text style={styles.heroName}>Pedro S.{"\n"}Tolentino</Text>
-          <Text style={styles.heroTagline}>Father of Tagalog Zarzuela</Text>
-          <View style={styles.heroMeta}>
-            <Feather name="calendar" size={12} color="rgba(255,255,255,0.55)" />
-            <Text style={styles.heroMetaText}>1858 – 1913</Text>
-            <View style={styles.heroMetaDot} />
-            <Feather name="map-pin" size={12} color="rgba(255,255,255,0.55)" />
-            <Text style={styles.heroMetaText}>Marikina</Text>
-          </View>
-        </Animated.View>
-      </LinearGradient>
-
-      <Animated.View style={[styles.statsRow, { opacity: statsAnim }]}>
-        {[
-          { value: "55+", label: "Zarzuelas" },
-          { value: "1900", label: "Masterpiece" },
-          { value: "55", label: "Years Lived" },
-        ].map((s, i) => (
-          <React.Fragment key={s.value}>
-            {i > 0 && <View style={styles.statSep} />}
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
+    <View style={styles.root}>
+      <Animated.View style={[styles.topBar, { paddingTop: topPad + 12, opacity: headerFade }]}>
+        <View style={styles.topLeft}>
+          <View style={styles.avatarRing}>
+            <View style={styles.avatarInner}>
+              <Feather name="user" size={18} color={COLORS.primaryContainer} />
             </View>
-          </React.Fragment>
-        ))}
+          </View>
+          <View>
+            <Text style={styles.appName}>THE CHRONOS INTERFACE</Text>
+            <Text style={styles.userLevel}>Level 7 Archivist</Text>
+          </View>
+        </View>
+        <View style={styles.xpChip}>
+          <Feather name="star" size={13} color={COLORS.tertiaryFixedDim} />
+          <Text style={styles.xpText}>1,250 XP</Text>
+        </View>
       </Animated.View>
 
-      <View style={styles.bioWrap}>
-        <Text style={styles.sectionLabel}>BIOGRAPHY</Text>
-        <Text style={styles.bioText}>
-          Pedro Serrano Tolentino was a celebrated playwright, nationalist, and pioneer
-          of Filipino theatrical arts. Through his zarzuelas and allegorical plays, he wove
-          cultural resistance into art — leaving an enduring legacy that inspires generations.
-        </Text>
-        <TouchableOpacity
-          style={styles.bioLink}
-          onPress={() => handlePress("/(tabs)/timeline")}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.bioLinkText}>Explore his timeline</Text>
-          <Feather name="arrow-right" size={14} color={COLORS.primary} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.featuresSection}>
-        <Text style={styles.sectionLabel}>EXPLORE</Text>
-        <View style={styles.featuresList}>
-          {FEATURES.map((item, index) => (
-            <FeatureCard
-              key={item.id}
-              item={item}
-              index={index}
-              onPress={handlePress}
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 130, paddingTop: topPad + 68 }}
+      >
+        <Animated.View style={{ opacity: contentFade }}>
+          <View style={styles.expeditionCard}>
+            <LinearGradient
+              colors={["#1c1b1b", "#0e0e0e"]}
+              style={StyleSheet.absoluteFill}
             />
-          ))}
-        </View>
-      </View>
+            <View style={styles.expeditionGlow} />
+            <View style={styles.expContent}>
+              <Text style={styles.expSubLabel}>ACTIVE EXPEDITION</Text>
+              <Text style={styles.expTitle}>
+                The Marikina{"\n"}
+                <Text style={styles.expTitleCyan}>Heritage Trail</Text>
+              </Text>
+              <View style={styles.progressRow}>
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={[COLORS.primary, COLORS.primaryContainer]}
+                    style={[styles.progressFill, { width: "45%" }]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  />
+                </View>
+                <Text style={styles.progressPct}>45%</Text>
+              </View>
+              <View style={styles.nextLocRow}>
+                <View style={styles.nextLocChip}>
+                  <Feather name="map-pin" size={13} color={COLORS.primaryContainer} />
+                  <Text style={styles.nextLocLabel}>NEXT ARTIFACT LOCATION</Text>
+                </View>
+                <Text style={styles.nextLocName}>Tolentino Heritage Museum</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.resumeBtn}
+              onPress={() => go("/(tabs)/ar")}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.primaryContainer]}
+                style={styles.resumeGrad}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Feather name="play" size={18} color="#00363d" />
+                <Text style={styles.resumeText}>Resume Journey</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.quoteWrap}>
-        <View style={styles.quoteAccent} />
-        <View style={styles.quoteBody}>
-          <Text style={styles.quoteText}>
-            "Art is the voice of the soul of a nation — and the Filipino soul will not be silenced."
-          </Text>
-          <Text style={styles.quoteAttrib}>— Inspired by Pedro S. Tolentino</Text>
-        </View>
-      </View>
-    </ScrollView>
+          <View style={styles.quickGrid}>
+            {QUICK_ACTIONS.map((a) => (
+              <TouchableOpacity
+                key={a.id}
+                style={styles.quickCard}
+                onPress={() => go(a.route)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.quickIconRing}>
+                  <Feather name={a.icon} size={22} color={COLORS.tertiaryFixedDim} />
+                </View>
+                <Text style={styles.quickLabel}>{a.label}</Text>
+                <Text style={styles.quickDesc}>{a.desc}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>Recent Discoveries</Text>
+              <TouchableOpacity onPress={() => go("/(tabs)/timeline")} style={styles.archiveBtn}>
+                <Text style={styles.archiveBtnText}>Archive</Text>
+                <Feather name="arrow-right" size={13} color={COLORS.primaryContainer} />
+              </TouchableOpacity>
+            </View>
+
+            {DISCOVERIES.map((d) => (
+              <TouchableOpacity
+                key={d.id}
+                style={styles.discoveryCard}
+                activeOpacity={0.8}
+                onPress={() => go("/(tabs)/gallery")}
+              >
+                <View style={styles.discThumb}>
+                  <LinearGradient
+                    colors={["#201f1f", "#1c1b1b"]}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <Feather name="book-open" size={28} color={COLORS.primaryContainer} />
+                </View>
+                <View style={styles.discBody}>
+                  <Text style={styles.discEra}>{d.era}</Text>
+                  <Text style={styles.discTitle}>{d.title}</Text>
+                  <Text style={styles.discDesc} numberOfLines={2}>{d.desc}</Text>
+                </View>
+                <View style={[styles.discGrade, { borderColor: d.gradeColor + "40" }]}>
+                  <Text style={[styles.discGradeText, { color: d.gradeColor }]}>{d.grade}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  root: { flex: 1, backgroundColor: COLORS.background },
 
-  hero: {
-    paddingHorizontal: 28,
-    paddingTop: 48,
-    paddingBottom: 44,
-  },
-  heroInner: { alignItems: "center", gap: 10 },
-  heroApp: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    color: "rgba(255,255,255,0.5)",
-    letterSpacing: 4,
-  },
-  heroDivLine: {
-    width: 40,
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.25)",
-  },
-  heroName: {
-    fontSize: 44,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-    textAlign: "center",
-    lineHeight: 50,
-  },
-  heroTagline: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.8)",
-    fontStyle: "italic",
-    textAlign: "center",
-  },
-  heroMeta: {
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 50,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: 8,
-    marginTop: 4,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    backgroundColor: "rgba(19,19,19,0.75)",
   },
-  heroMetaText: {
+  topLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatarRing: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2,
+    borderColor: COLORS.primaryContainer,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  appName: {
     fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.6)",
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.primaryContainer,
+    letterSpacing: 1.5,
   },
-  heroMetaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: "rgba(255,255,255,0.3)",
+  userLevel: {
+    fontSize: 10,
+    fontFamily: "Manrope_500Medium",
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
-
-  statsRow: {
-    flexDirection: "row",
-    paddingHorizontal: 28,
-    paddingVertical: 22,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  statItem: { flex: 1, alignItems: "center", gap: 4 },
-  statValue: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.primary,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textMuted,
-    textAlign: "center",
-  },
-  statSep: {
-    width: 1,
-    backgroundColor: COLORS.borderLight,
-    marginHorizontal: 8,
-  },
-
-  bioWrap: {
-    paddingHorizontal: 28,
-    paddingVertical: 26,
-    backgroundColor: COLORS.surfaceWarm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-    gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    color: COLORS.primary,
-    letterSpacing: 2.5,
-  },
-  bioText: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: COLORS.textSecondary,
-    lineHeight: 26,
-  },
-  bioLink: {
+  xpChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 2,
+    backgroundColor: COLORS.surfaceContainerHighest,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "30",
   },
-  bioLinkText: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
+  xpText: {
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.primaryContainer,
+    letterSpacing: 0.5,
+  },
+
+  scroll: { flex: 1 },
+
+  expeditionCard: {
+    margin: 16,
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "20",
+  },
+  expeditionGlow: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: COLORS.primaryContainer + "08",
+  },
+  expContent: { padding: 22, gap: 14 },
+  expSubLabel: {
+    fontSize: 10,
+    fontFamily: "Manrope_700Bold",
     color: COLORS.primary,
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
-
-  featuresSection: {
-    paddingHorizontal: 20,
-    paddingTop: 26,
-    paddingBottom: 4,
-    gap: 14,
+  expTitle: {
+    fontSize: 36,
+    fontFamily: "SpaceGrotesk_700Bold",
+    color: COLORS.onSurface,
+    lineHeight: 42,
   },
-  featuresList: {
-    gap: 10,
-  },
-
-  cardWrap: {
-    width: "100%",
-  },
-  cardInner: {
-    borderRadius: 18,
+  expTitleCyan: { color: COLORS.primaryContainer },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  progressTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.surfaceContainerHighest,
     overflow: "hidden",
   },
-  cardGrad: {
+  progressFill: { height: "100%", borderRadius: 3 },
+  progressPct: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer },
+  nextLocRow: {
+    backgroundColor: COLORS.surfaceContainerHighest + "80",
+    padding: 14,
+    borderRadius: 14,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "20",
+  },
+  nextLocChip: { flexDirection: "row", alignItems: "center", gap: 6 },
+  nextLocLabel: {
+    fontSize: 9,
+    fontFamily: "Manrope_700Bold",
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  nextLocName: { fontSize: 14, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurface },
+  resumeBtn: { margin: 16, marginTop: 4, borderRadius: 14, overflow: "hidden" },
+  resumeGrad: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
   },
-  cardIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.18)",
+  resumeText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1, textTransform: "uppercase" },
+
+  quickGrid: { flexDirection: "row", paddingHorizontal: 16, gap: 10, marginBottom: 4 },
+  quickCard: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "15",
+  },
+  quickIconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.tertiaryContainer + "18",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quickLabel: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface },
+  quickDesc: { fontSize: 11, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant },
+
+  section: { paddingHorizontal: 16, marginTop: 20 },
+  sectionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  sectionTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface },
+  archiveBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
+  archiveBtnText: { fontSize: 12, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, textTransform: "uppercase", letterSpacing: 1 },
+
+  discoveryCard: {
+    flexDirection: "row",
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant + "15",
+  },
+  discThumb: {
+    width: 90,
+    height: 90,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
   },
-  cardTextWrap: {
-    flex: 1,
-    gap: 4,
+  discBody: { flex: 1, padding: 12, gap: 4 },
+  discEra: { fontSize: 9, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, letterSpacing: 1, textTransform: "uppercase" },
+  discTitle: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface },
+  discDesc: { fontSize: 11, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 17 },
+  discGrade: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: COLORS.surfaceContainerHighest + "cc",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
   },
-  cardLabel: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    color: "#fff",
-  },
-  cardDesc: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
-  },
-
-  quoteWrap: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 16,
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 8,
-  },
-  quoteAccent: {
-    width: 3,
-    minHeight: 60,
-    backgroundColor: COLORS.accent,
-    borderRadius: 2,
-  },
-  quoteBody: { flex: 1, gap: 8 },
-  quoteText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    fontStyle: "italic",
-    color: COLORS.textSecondary,
-    lineHeight: 24,
-  },
-  quoteAttrib: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    color: COLORS.textMuted,
-  },
+  discGradeText: { fontSize: 8, fontFamily: "Manrope_800ExtraBold", letterSpacing: 0.5, textTransform: "uppercase" },
 });

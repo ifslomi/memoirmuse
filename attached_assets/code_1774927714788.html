@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MemoirMuse | The Chronos Interface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#343d96",
+              "surface-container": "#201f1f",
+              "on-error-container": "#ffdad6",
+              "surface-container-highest": "#353534",
+              "on-tertiary-fixed-variant": "#5b4300",
+              "outline-variant": "#3b494c",
+              "surface-container-low": "#1c1b1b",
+              "on-secondary-fixed": "#000767",
+              "secondary-fixed-dim": "#bdc2ff",
+              "outline": "#849396",
+              "on-primary-fixed-variant": "#004f58",
+              "tertiary-container": "#ffc948",
+              "inverse-on-surface": "#313030",
+              "on-secondary": "#1b247f",
+              "on-primary-fixed": "#001f24",
+              "surface-tint": "#00daf3",
+              "on-secondary-container": "#a8afff",
+              "surface-dim": "#131313",
+              "on-secondary-fixed-variant": "#343d96",
+              "tertiary-fixed-dim": "#fabd00",
+              "surface-container-high": "#2a2a2a",
+              "surface-bright": "#393939",
+              "error-container": "#93000a",
+              "on-primary-container": "#00626e",
+              "on-tertiary-container": "#725400",
+              "on-background": "#e5e2e1",
+              "surface-container-lowest": "#0e0e0e",
+              "error": "#ffb4ab",
+              "tertiary": "#ffebc6",
+              "primary-fixed-dim": "#00daf3",
+              "background": "#131313",
+              "on-primary": "#00363d",
+              "primary-container": "#00e5ff",
+              "surface": "#131313",
+              "on-surface": "#e5e2e1",
+              "inverse-surface": "#e5e2e1",
+              "secondary": "#bdc2ff",
+              "inverse-primary": "#006875",
+              "surface-variant": "#353534",
+              "on-tertiary-fixed": "#261a00",
+              "primary": "#c3f5ff",
+              "secondary-fixed": "#e0e0ff",
+              "tertiary-fixed": "#ffdf9e",
+              "on-error": "#690005",
+              "on-surface-variant": "#bac9cc",
+              "on-tertiary": "#3f2e00",
+              "primary-fixed": "#9cf0ff"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(53, 53, 52, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden">
+<!-- Immersive Background Layer -->
+<div class="fixed inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background z-10"></div>
+<img class="w-full h-full object-cover opacity-60 scale-105" data-alt="abstract digital archives with glowing blue neural network connections and floating historical document fragments in deep space aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM7HJXUmmyENkVFN8PCH_DUk3MzhaVOkElV57NYwB3iKoVtkaFoQ7VK-GJefSz2cQQ3HUVMZ0AhsuZ-Ys1HwlSES2-_obta6vlD7y3Zbv0G4Z4aCFCRhxy_cjoMaS6KvK5BtRH1c1Vi8BFgHvAVjKskVQyxW2XOiuIxvvrzUw6OON5tDbOOwS_4-6BAchUQRK8yHMgEtWqekgiAbG3V2Vl0rFDKOMxonmF-ArJmksnOMrTXQQR28_d1WZjOHBOeh77veS3XDPoosY"/>
+</div>
+<!-- Top Navigation Bar (Branding Anchor) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-gradient-to-b from-[#201f1f] to-transparent shadow-[0_40px_40px_rgba(229,226,225,0.05)]">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center shadow-[0_0_15px_rgba(0,229,255,0.4)]">
+<span class="material-symbols-outlined text-background text-sm" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+</div>
+<h1 class="text-xl font-headline font-bold tracking-widest text-primary-container uppercase">MemoirMuse</h1>
+</div>
+<div class="hidden md:flex items-center gap-6">
+<span class="font-label text-xs tracking-[0.05rem] uppercase font-bold text-on-surface-variant hover:text-primary-container transition-colors cursor-pointer">Archive</span>
+<span class="font-label text-xs tracking-[0.05rem] uppercase font-bold text-on-surface-variant hover:text-primary-container transition-colors cursor-pointer">Manifesto</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="relative z-20 min-h-screen flex items-center justify-center px-6 py-20">
+<div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+<!-- Left Column: Hero Narrative -->
+<div class="md:col-span-7 flex flex-col gap-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high/50 border border-outline-variant/15 w-fit">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+<span class="text-[10px] font-label font-extrabold uppercase tracking-widest text-primary">System Online: v4.0.2</span>
+</div>
+<h2 class="font-headline text-5xl md:text-7xl font-bold text-primary-container leading-[1.1] tracking-tight">
+                    Resurrect <br/>
+<span class="text-on-background opacity-90">Lost Eras.</span>
+</h2>
+<p class="text-on-surface-variant text-lg max-w-md font-light leading-relaxed">
+                    Bridge the gap between raw data and immersive reality. Experience history not as a record, but as a living landscape.
+                </p>
+<!-- Artifact Feature Bento (Asymmetric) -->
+<div class="mt-8 grid grid-cols-2 gap-4">
+<div class="glass-panel p-6 rounded-lg border border-outline-variant/10 flex flex-col gap-3">
+<span class="material-symbols-outlined text-tertiary-fixed-dim" style="font-variation-settings: 'FILL' 1;">deployed_code</span>
+<h3 class="font-headline text-sm font-bold text-on-surface uppercase tracking-wider">Spatial Sync</h3>
+</div>
+<div class="glass-panel p-6 rounded-lg border border-outline-variant/10 flex flex-col gap-3 translate-y-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="font-headline text-sm font-bold text-on-surface uppercase tracking-wider">Neural AR</h3>
+</div>
+</div>
+</div>
+<!-- Right Column: Login Interface -->
+<div class="md:col-span-5">
+<div class="glass-panel p-8 md:p-10 rounded-lg border border-outline-variant/20 shadow-2xl relative overflow-hidden">
+<!-- Subtle Glow Ornament -->
+<div class="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl"></div>
+<div class="relative z-10 flex flex-col gap-8">
+<div class="space-y-2">
+<h2 class="font-headline text-2xl font-bold text-on-surface tracking-tight">Access Interface</h2>
+<p class="text-on-surface-variant text-sm">Enter your credentials to re-materialize.</p>
+</div>
+<!-- Form Elements -->
+<div class="space-y-4">
+<div class="space-y-2">
+<label class="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Archive ID</label>
+<div class="bg-surface-container-lowest rounded-md p-4 flex items-center gap-3 border border-transparent focus-within:border-primary-container/30 transition-all">
+<span class="material-symbols-outlined text-outline-variant text-sm">alternate_email</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-sm w-full placeholder:text-outline-variant" placeholder="name@chronos.io" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant ml-1">Quantum Key</label>
+<div class="bg-surface-container-lowest rounded-md p-4 flex items-center gap-3 border border-transparent focus-within:border-primary-container/30 transition-all">
+<span class="material-symbols-outlined text-outline-variant text-sm">lock</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-sm w-full placeholder:text-outline-variant" placeholder="••••••••" type="password"/>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-4 pt-2">
+<button class="w-full bg-gradient-to-tr from-primary to-primary-container text-on-primary-container font-headline font-bold py-4 rounded-full shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:scale-[0.98] transition-transform active:scale-95">
+                                Initialize Login
+                            </button>
+<div class="flex items-center gap-4 py-2">
+<div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+<span class="text-[10px] font-label font-bold uppercase tracking-widest text-outline-variant">Protocol Selection</span>
+<div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<button class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label text-xs font-bold py-3 px-4 rounded-md transition-colors border border-outline-variant/10">
+                                    Create Account
+                                </button>
+<button class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label text-xs font-bold py-3 px-4 rounded-md transition-colors border border-outline-variant/10">
+                                    Guest Access
+                                </button>
+</div>
+</div>
+<p class="text-[10px] text-center text-on-surface-variant/60 font-label tracking-wide mt-4">
+                            By accessing MemoirMuse, you agree to the <br/>
+<span class="text-primary underline cursor-pointer">Chronos Temporal Stability Agreement</span>.
+                        </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Meta-info -->
+<footer class="fixed bottom-6 left-6 right-6 z-50 flex justify-between items-center">
+<div class="flex gap-4">
+<div class="flex flex-col">
+<span class="text-[8px] font-label uppercase tracking-widest text-outline-variant">Coordinates</span>
+<span class="text-[10px] font-headline font-bold text-on-surface">51.5074° N, 0.1278° W</span>
+</div>
+<div class="w-[1px] h-8 bg-outline-variant/20"></div>
+<div class="flex flex-col">
+<span class="text-[8px] font-label uppercase tracking-widest text-outline-variant">Epoch Time</span>
+<span class="text-[10px] font-headline font-bold text-on-surface">1709424000 MS</span>
+</div>
+</div>
+<div class="hidden md:flex items-center gap-3">
+<div class="p-2 rounded-full glass-panel border border-outline-variant/10 cursor-pointer hover:bg-primary-container hover:text-background transition-all">
+<span class="material-symbols-outlined text-sm">public</span>
+</div>
+<div class="p-2 rounded-full glass-panel border border-outline-variant/10 cursor-pointer hover:bg-primary-container hover:text-background transition-all">
+<span class="material-symbols-outlined text-sm">settings_input_component</span>
+</div>
+</div>
+</footer>
+<!-- Background Decoration -->
+<div class="fixed top-1/4 -left-20 w-96 h-96 bg-primary-container/5 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="fixed bottom-0 -right-20 w-80 h-80 bg-tertiary-container/5 rounded-full blur-[100px] pointer-events-none"></div>
+</body></html>
