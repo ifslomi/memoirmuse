@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
 import {
@@ -14,14 +14,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
+import { useAuth } from "@/context/AuthContext";
 
-const TAB_H = 64;
-const CENTER_SIZE = 64;
+const TAB_H = 60;
+const CENTER_SIZE = 50;
 
 const TAB_DEFS = [
   { name: "index", label: "Home", icon: "home" as const },
   { name: "map", label: "Map", icon: "map" as const },
-  { name: "ar", label: "AR Camera", icon: "camera" as const, center: true },
+  { name: "ar", label: "AR", icon: "camera" as const, center: true },
   { name: "quiz", label: "Quizzes", icon: "help-circle" as const },
   { name: "gallery", label: "Profile", icon: "user" as const },
 ];
@@ -56,12 +57,8 @@ function TabItem({
   };
 
   return (
-    <TouchableOpacity
-      style={styles.tabItem}
-      onPress={handlePress}
-      activeOpacity={1}
-    >
-      <Animated.View style={{ transform: [{ scale }], alignItems: "center", gap: 4 }}>
+    <TouchableOpacity style={styles.tabItem} onPress={handlePress} activeOpacity={1}>
+      <Animated.View style={{ transform: [{ scale }], alignItems: "center", gap: 3 }}>
         <Animated.View
           style={[
             styles.activeIndicator,
@@ -80,15 +77,10 @@ function TabItem({
         />
         <Feather
           name={tab.icon}
-          size={22}
+          size={20}
           color={isActive ? "#00e5ff" : "rgba(229,226,225,0.35)"}
         />
-        <Text
-          style={[
-            styles.tabLabel,
-            { color: isActive ? "#00e5ff" : "rgba(229,226,225,0.35)" },
-          ]}
-        >
+        <Text style={[styles.tabLabel, { color: isActive ? "#00e5ff" : "rgba(229,226,225,0.35)" }]}>
           {tab.label}
         </Text>
       </Animated.View>
@@ -109,8 +101,8 @@ function CenterButton({
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(glowOpacity, { toValue: 1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(glowOpacity, { toValue: 0.5, duration: 1200, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: 0.9, duration: 1200, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
       ])
     ).start();
   }, []);
@@ -131,27 +123,27 @@ function CenterButton({
           <Animated.View style={[styles.centerGlow, { opacity: glowOpacity }]} />
           <LinearGradient
             colors={["#c3f5ff", "#00e5ff"]}
-            style={styles.centerBtn}
+            style={[styles.centerBtn, isActive && styles.centerBtnActive]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Feather name="camera" size={26} color="#00363d" />
+            <Feather name="camera" size={22} color="#00363d" />
           </LinearGradient>
         </Animated.View>
       </TouchableOpacity>
       <Text style={[styles.centerLabel, { color: isActive ? "#00e5ff" : "rgba(229,226,225,0.45)" }]}>
-        AR Camera
+        AR
       </Text>
     </View>
   );
 }
 
 function CustomTabBar({ state, navigation, insets }: BottomTabBarProps & { insets: { bottom: number } }) {
-  const bottomPad = Platform.OS === "ios" ? insets.bottom : 10;
+  const bottomPad = Platform.OS === "ios" ? insets.bottom : 8;
   const barHeight = TAB_H + bottomPad;
 
   return (
-    <View style={[styles.wrapper, { height: barHeight + 20, bottom: 0 }]}>
+    <View style={[styles.wrapper, { height: barHeight + 16, bottom: 0 }]}>
       {Platform.OS === "ios" ? (
         <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill} />
       ) : (
@@ -175,19 +167,10 @@ function CustomTabBar({ state, navigation, insets }: BottomTabBarProps & { inset
           };
 
           if (tab.center) {
-            return (
-              <CenterButton key={tab.name} isActive={isActive} onPress={handlePress} />
-            );
+            return <CenterButton key={tab.name} isActive={isActive} onPress={handlePress} />;
           }
 
-          return (
-            <TabItem
-              key={tab.name}
-              tab={tab}
-              isActive={isActive}
-              onPress={handlePress}
-            />
-          );
+          return <TabItem key={tab.name} tab={tab} isActive={isActive} onPress={handlePress} />;
         })}
       </View>
     </View>
@@ -200,6 +183,15 @@ function WrappedTabBar(props: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login");
+    }
+  }, [user]);
+
   return (
     <Tabs
       tabBar={(props) => <WrappedTabBar {...props} />}
@@ -225,9 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     overflow: "visible",
   },
-  androidBg: {
-    backgroundColor: "rgba(20,20,20,0.97)",
-  },
+  androidBg: { backgroundColor: "rgba(20,20,20,0.97)" },
   bar: {
     flex: 1,
     flexDirection: "row",
@@ -244,7 +234,7 @@ const styles = StyleSheet.create({
   activeIndicator: {
     position: "absolute",
     top: -2,
-    width: 28,
+    width: 24,
     height: 3,
     borderRadius: 2,
     backgroundColor: "#00e5ff",
@@ -254,7 +244,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   tabLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: "Manrope_700Bold",
     letterSpacing: 0.3,
     textTransform: "uppercase",
@@ -271,28 +261,35 @@ const styles = StyleSheet.create({
     borderRadius: CENTER_SIZE / 2,
     justifyContent: "center",
     alignItems: "center",
-    transform: [{ translateY: -18 }],
+    transform: [{ translateY: -14 }],
+  },
+  centerBtnActive: {
+    shadowColor: "#00e5ff",
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
   },
   centerGlow: {
     position: "absolute",
-    width: CENTER_SIZE + 20,
-    height: CENTER_SIZE + 20,
-    borderRadius: (CENTER_SIZE + 20) / 2,
+    width: CENTER_SIZE + 14,
+    height: CENTER_SIZE + 14,
+    borderRadius: (CENTER_SIZE + 14) / 2,
     backgroundColor: "#00e5ff",
-    transform: [{ translateY: -18 }],
-    top: -10,
-    left: -10,
+    transform: [{ translateY: -14 }],
+    top: -7,
+    left: -7,
     shadowColor: "#00e5ff",
-    shadowOpacity: 1,
-    shadowRadius: 20,
+    shadowOpacity: 0.8,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 0 },
     elevation: 0,
+    opacity: 0.08,
   },
   centerLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: "Manrope_700Bold",
     letterSpacing: 0.3,
     textTransform: "uppercase",
-    marginTop: -14,
+    marginTop: -10,
   },
 });

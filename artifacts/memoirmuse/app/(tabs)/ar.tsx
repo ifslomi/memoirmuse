@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Line, Circle, Polygon, Text as SvgText, Defs, Filter, FeGaussianBlur, FeComposite } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import COLORS from "@/constants/colors";
 import { AR_MARKERS } from "@/constants/data";
@@ -30,8 +31,181 @@ const ARTIFACT_DATA = AR_MARKERS.map((m, i) => ({
   xp: ["+350 XP", "+500 XP", "+150 XP"][i % 3],
 }));
 
-const RETICLE_SIZE = 280;
-const CORNER_SIZE = 52;
+const RETICLE_SIZE = 260;
+const MODEL_SIZE = 200;
+
+// 3D geometry definitions
+const BOX_VERTS: [number, number, number][] = [
+  [-1.4, -0.9, -0.9], [1.4, -0.9, -0.9], [1.4, 0.9, -0.9], [-1.4, 0.9, -0.9],
+  [-1.4, -0.9,  0.9], [1.4, -0.9,  0.9], [1.4, 0.9,  0.9], [-1.4, 0.9,  0.9],
+];
+const BOX_EDGES: [number, number][] = [
+  [0,1],[1,2],[2,3],[3,0],
+  [4,5],[5,6],[6,7],[7,4],
+  [0,4],[1,5],[2,6],[3,7],
+];
+
+const OCT_VERTS: [number, number, number][] = [
+  [0, 1.4, 0], [0, -1.4, 0],
+  [1.0, 0, 0], [-1.0, 0, 0],
+  [0, 0, 1.0], [0, 0, -1.0],
+];
+const OCT_EDGES: [number, number][] = [
+  [0,2],[0,3],[0,4],[0,5],
+  [1,2],[1,3],[1,4],[1,5],
+  [2,4],[4,3],[3,5],[5,2],
+];
+
+const PRISM_VERTS: [number, number, number][] = [
+  [-1.2, -0.8, -1.2], [1.2, -0.8, -1.2], [0, 0.9, -1.2],
+  [-1.2, -0.8,  1.2], [1.2, -0.8,  1.2], [0, 0.9,  1.2],
+];
+const PRISM_EDGES: [number, number][] = [
+  [0,1],[1,2],[2,0],
+  [3,4],[4,5],[5,3],
+  [0,3],[1,4],[2,5],
+];
+
+const SHAPES = [
+  { verts: BOX_VERTS, edges: BOX_EDGES },
+  { verts: OCT_VERTS, edges: OCT_EDGES },
+  { verts: PRISM_VERTS, edges: PRISM_EDGES },
+];
+
+function rotY(v: [number, number, number], a: number): [number, number, number] {
+  const c = Math.cos(a), s = Math.sin(a);
+  return [c * v[0] + s * v[2], v[1], -s * v[0] + c * v[2]];
+}
+
+function rotX(v: [number, number, number], a: number): [number, number, number] {
+  const c = Math.cos(a), s = Math.sin(a);
+  return [v[0], c * v[1] - s * v[2], s * v[1] + c * v[2]];
+}
+
+function project(v: [number, number, number], fov = 120, dist = 4): [number, number, number] {
+  const z = v[2] + dist;
+  const scale = fov / z;
+  return [v[0] * scale, v[1] * scale, v[2]];
+}
+
+function ArtifactModel3D({ shapeIndex }: { shapeIndex: number }) {
+  const [angle, setAngle] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const shape = SHAPES[shapeIndex % SHAPES.length];
+  const cx = MODEL_SIZE / 2;
+  const cy = MODEL_SIZE / 2;
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setAngle((a) => a + 0.022);
+    }, 33);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
+
+  const projected = useMemo(() => {
+    const tiltX = 0.35;
+    return shape.verts.map((v) => {
+      const ry = rotY(v, angle);
+      const rx = rotX(ry, tiltX);
+      const p = project(rx);
+      return { x: cx + p[0], y: cy + p[1], z: p[2] };
+    });
+  }, [angle, shape, cx, cy]);
+
+  const minZ = Math.min(...projected.map((p) => p.z));
+  const maxZ = Math.max(...projected.map((p) => p.z));
+  const depthRange = maxZ - minZ || 1;
+
+  const edgeLines = useMemo(() => {
+    return shape.edges.map(([a, b]) => {
+      const pa = projected[a];
+      const pb = projected[b];
+      const midZ = (pa.z + pb.z) / 2;
+      const depth = (midZ - minZ) / depthRange;
+      const opacity = 0.35 + depth * 0.65;
+      const strokeW = 1 + depth * 1.8;
+      return { x1: pa.x, y1: pa.y, x2: pb.x, y2: pb.y, opacity, strokeW };
+    });
+  }, [projected, shape.edges, minZ, depthRange]);
+
+  const vertexDots = useMemo(() => {
+    return projected.map((p) => {
+      const depth = (p.z - minZ) / depthRange;
+      const opacity = 0.3 + depth * 0.7;
+      const r = 1.5 + depth * 1.5;
+      return { x: p.x, y: p.y, opacity, r };
+    });
+  }, [projected, minZ, depthRange]);
+
+  return (
+    <View style={model3dStyles.container}>
+      <View style={model3dStyles.glow} />
+      <Svg width={MODEL_SIZE} height={MODEL_SIZE}>
+        {edgeLines.map((line, i) => (
+          <Line
+            key={`e${i}`}
+            x1={line.x1}
+            y1={line.y1}
+            x2={line.x2}
+            y2={line.y2}
+            stroke="#00e5ff"
+            strokeWidth={line.strokeW}
+            strokeOpacity={line.opacity}
+          />
+        ))}
+        {vertexDots.map((dot, i) => (
+          <Circle
+            key={`v${i}`}
+            cx={dot.x}
+            cy={dot.y}
+            r={dot.r}
+            fill="#00e5ff"
+            fillOpacity={dot.opacity}
+          />
+        ))}
+      </Svg>
+      <View style={model3dStyles.labelRow}>
+        <View style={model3dStyles.dot} />
+        <Text style={model3dStyles.label}>3D ARTIFACT MODEL</Text>
+        <View style={model3dStyles.dot} />
+      </View>
+    </View>
+  );
+}
+
+const model3dStyles = StyleSheet.create({
+  container: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  glow: {
+    position: "absolute",
+    width: MODEL_SIZE * 0.9,
+    height: MODEL_SIZE * 0.9,
+    borderRadius: MODEL_SIZE * 0.45,
+    backgroundColor: "#00e5ff",
+    opacity: 0.04,
+    shadowColor: "#00e5ff",
+    shadowOpacity: 0.4,
+    shadowRadius: 40,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+  },
+  dot: { width: 5, height: 1.5, backgroundColor: "#00e5ff", opacity: 0.6 },
+  label: {
+    fontSize: 9,
+    fontFamily: "Manrope_700Bold",
+    color: "#00e5ff",
+    letterSpacing: 2,
+    opacity: 0.7,
+  },
+});
 
 export default function ARScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -47,7 +221,7 @@ export default function ARScreen() {
   const cornerScale = useRef(new Animated.Value(1)).current;
   const instrAnim = useRef(new Animated.Value(0)).current;
   const detectedScale = useRef(new Animated.Value(0)).current;
-  const scanRingAnim = useRef(new Animated.Value(0)).current;
+  const modelFade = useRef(new Animated.Value(0)).current;
 
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 20 : insets.top;
@@ -55,28 +229,24 @@ export default function ARScreen() {
 
   useEffect(() => {
     Animated.timing(instrAnim, { toValue: 1, duration: 500, delay: 300, useNativeDriver: true }).start();
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.08, duration: 900, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
     ).start();
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 0.9, duration: 1400, useNativeDriver: true }),
         Animated.timing(glowAnim, { toValue: 0.35, duration: 1400, useNativeDriver: true }),
       ])
     ).start();
-
     Animated.loop(
       Animated.sequence([
-        Animated.timing(cornerBlink, { toValue: 0.55, duration: 700, useNativeDriver: true }),
+        Animated.timing(cornerBlink, { toValue: 0.5, duration: 700, useNativeDriver: true }),
         Animated.timing(cornerBlink, { toValue: 1, duration: 700, useNativeDriver: true }),
       ])
     ).start();
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(cornerScale, { toValue: 1.04, duration: 1600, useNativeDriver: true }),
@@ -97,25 +267,12 @@ export default function ARScreen() {
     ).start();
   }, []);
 
-  const startScanRing = useCallback(() => {
-    scanRingAnim.setValue(0);
-    Animated.loop(
-      Animated.timing(scanRingAnim, {
-        toValue: 1,
-        duration: 1800,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-  }, []);
-
   const handleScan = async () => {
     if (scanState !== "idle") return;
     if (Platform.OS !== "web") await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setScanState("scanning");
     setSignalPct(0);
     startScanLine();
-    startScanRing();
 
     let progress = 0;
     const interval = setInterval(() => {
@@ -123,15 +280,14 @@ export default function ARScreen() {
       setSignalPct(Math.min(Math.round(progress), 98));
       if (progress >= 100) {
         clearInterval(interval);
-        setSignalPct(98);
+        setSignalPct(100);
         setScanState("detected");
         detectedScale.setValue(0);
-        Animated.spring(detectedScale, {
-          toValue: 1,
-          friction: 5,
-          tension: 60,
-          useNativeDriver: true,
-        }).start();
+        modelFade.setValue(0);
+        Animated.parallel([
+          Animated.spring(detectedScale, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }),
+          Animated.timing(modelFade, { toValue: 1, duration: 600, delay: 200, useNativeDriver: true }),
+        ]).start();
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     }, 300);
@@ -141,6 +297,7 @@ export default function ARScreen() {
     setScanState("idle");
     setSignalPct(0);
     setMarkerIndex((i) => i + 1);
+    modelFade.setValue(0);
   };
 
   if (Platform.OS !== "web" && !permission?.granted) {
@@ -151,10 +308,8 @@ export default function ARScreen() {
           <View style={styles.permGlow} />
           <View style={styles.permIconRing}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={StyleSheet.absoluteFill} />
-            <View style={styles.permIconInner}>
-              <Feather name="camera" size={32} color="#00363d" />
-            </View>
-          </View>
+            <Feather name="camera" size={32} color="#00363d" />
+          </LinearGradient>
           <Text style={styles.permTitle}>Camera Access Required</Text>
           <Text style={styles.permText}>Enable camera to scan AR markers at heritage sites and discover hidden artifacts.</Text>
           <TouchableOpacity style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
@@ -183,7 +338,6 @@ export default function ARScreen() {
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.fakeCam]}>
           <LinearGradient colors={["#050e1a", "#030810", "#050c10"]} style={StyleSheet.absoluteFill} />
-          <View style={styles.gridOverlay} />
         </View>
       )}
 
@@ -219,7 +373,7 @@ export default function ARScreen() {
         </Text>
         <Text style={styles.instrSub}>
           {scanState === "idle"
-            ? "Scan a marker to discover Pedro S. Tolentino's legacy."
+            ? "Point camera at an AR marker to scan heritage artifacts."
             : scanState === "scanning"
             ? "Hold steady — artifact data initializing."
             : artifact.title}
@@ -228,13 +382,8 @@ export default function ARScreen() {
 
       <View style={styles.reticleWrap} pointerEvents="none">
         <Animated.View style={[styles.reticle, { transform: [{ scale: cornerScale }], opacity: cornerBlink }]}>
-          {[
-            [styles.cornerTL],
-            [styles.cornerTR],
-            [styles.cornerBL],
-            [styles.cornerBR],
-          ].map((cornerStyles, i) => (
-            <View key={i} style={[styles.corner, ...cornerStyles, { borderColor: cornerColor }]} />
+          {[styles.cornerTL, styles.cornerTR, styles.cornerBL, styles.cornerBR].map((cs, i) => (
+            <View key={i} style={[styles.corner, cs, { borderColor: cornerColor }]} />
           ))}
 
           {scanState === "scanning" && (
@@ -249,13 +398,18 @@ export default function ARScreen() {
           )}
 
           {scanState === "detected" && (
-            <Animated.View style={[styles.detectedBurst, { transform: [{ scale: detectedScale }] }]}>
-              <View style={styles.detectedRingOuter} />
-              <View style={styles.detectedRingInner} />
-              <Feather name="check" size={34} color={COLORS.tertiaryFixedDim} />
+            <Animated.View style={[styles.detectedWrap, { opacity: modelFade }]}>
+              <ArtifactModel3D shapeIndex={markerIndex} />
             </Animated.View>
           )}
         </Animated.View>
+
+        {scanState === "detected" && (
+          <Animated.View style={[styles.detectedBurst, { transform: [{ scale: detectedScale }] }]}>
+            <View style={styles.detectedRingOuter} />
+            <View style={styles.detectedRingInner} />
+          </Animated.View>
+        )}
       </View>
 
       <View style={styles.rightActions}>
@@ -265,7 +419,7 @@ export default function ARScreen() {
           { icon: "archive" as const, label: "Relics", color: COLORS.onSurface },
         ].map((btn) => (
           <TouchableOpacity key={btn.label} style={styles.sideBtn} activeOpacity={0.8}>
-            <Feather name={btn.icon} size={20} color={btn.color} />
+            <Feather name={btn.icon} size={18} color={btn.color} />
             <Text style={styles.sideBtnLabel}>{btn.label}</Text>
           </TouchableOpacity>
         ))}
@@ -274,7 +428,6 @@ export default function ARScreen() {
       <View style={styles.bottomHUD} pointerEvents="none">
         <View style={styles.trackingRow}>
           <Animated.View style={[styles.trackingDot, { opacity: glowAnim }]} />
-          <Feather name="radio" size={12} color={COLORS.primaryContainer} />
           <Text style={styles.trackingLabel}>TRACKING ACTIVE</Text>
         </View>
         <View style={styles.signalTrack}>
@@ -292,7 +445,7 @@ export default function ARScreen() {
         {scanState === "idle" && (
           <TouchableOpacity style={styles.scanBtn} onPress={handleScan} activeOpacity={0.85}>
             <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.scanBtnGrad}>
-              <Feather name="camera" size={22} color="#00363d" />
+              <Feather name="camera" size={20} color="#00363d" />
               <Text style={styles.scanBtnText}>BEGIN SCAN</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -331,13 +484,8 @@ export default function ARScreen() {
 
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
             <View style={styles.modalArtViewer}>
-              <View style={styles.modalGlow} />
-              <View style={styles.modalIconRing}>
-                <LinearGradient
-                  colors={["rgba(0,229,255,0.15)", "rgba(0,229,255,0.05)"]}
-                  style={StyleSheet.absoluteFill}
-                />
-                <Feather name={artifact.icon as any} size={48} color={COLORS.primaryContainer} />
+              <View style={styles.modalModelBox}>
+                <ArtifactModel3D shapeIndex={markerIndex} />
               </View>
 
               <View style={styles.modalTagRow}>
@@ -360,10 +508,10 @@ export default function ARScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.modalIconBtn}>
-                  <Feather name="share-2" size={20} color={COLORS.primaryContainer} />
+                  <Feather name="share-2" size={18} color={COLORS.primaryContainer} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.modalIconBtn}>
-                  <Feather name="bookmark" size={20} color={COLORS.primaryContainer} />
+                  <Feather name="bookmark" size={18} color={COLORS.primaryContainer} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -380,7 +528,7 @@ export default function ARScreen() {
                   colors={[COLORS.tertiaryContainer + "12", COLORS.tertiaryContainer + "06"]}
                   style={StyleSheet.absoluteFill}
                 />
-                <Feather name="award" size={24} color={COLORS.tertiaryFixedDim} />
+                <Feather name="award" size={22} color={COLORS.tertiaryFixedDim} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.modalXpTitle}>Chronos Challenge Unlocked</Text>
                   <Text style={styles.modalXpSub}>Answer questions about this artifact to earn {artifact.xp}.</Text>
@@ -407,289 +555,102 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#050810" },
   center: { justifyContent: "center", alignItems: "center" },
   fakeCam: {},
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundImage: Platform.OS === "web"
-      ? "linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px)"
-      : undefined,
-    backgroundSize: Platform.OS === "web" ? "44px 44px" : undefined,
-  } as any,
 
   topBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 40,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    position: "absolute", top: 0, left: 0, right: 0, zIndex: 40,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 20, paddingBottom: 14,
     backgroundColor: "rgba(19,19,19,0.65)",
   },
   topLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   avatarRing: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    borderColor: COLORS.primaryContainer,
-    justifyContent: "center",
-    alignItems: "center",
+    width: 42, height: 42, borderRadius: 21,
+    borderWidth: 2, borderColor: COLORS.primaryContainer,
+    justifyContent: "center", alignItems: "center",
     backgroundColor: COLORS.surfaceContainerHigh,
   },
   topTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "#00e5ff", letterSpacing: 1.5 },
   topSub: { fontSize: 9, fontFamily: "Manrope_600SemiBold", color: COLORS.onSurfaceVariant, letterSpacing: 1, textTransform: "uppercase" },
   xpChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(53,53,52,0.65)",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "25",
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "rgba(53,53,52,0.65)", paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 999, borderWidth: 1, borderColor: COLORS.outlineVariant + "25",
   },
   xpText: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "#00e5ff" },
 
   instructionsBubble: {
-    position: "absolute",
-    top: Platform.OS === "web" ? 90 : 120,
-    left: 20,
-    right: 20,
-    zIndex: 30,
-    backgroundColor: "rgba(32,31,31,0.82)",
-    borderRadius: 18,
-    padding: 16,
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: "rgba(59,73,76,0.25)",
+    position: "absolute", top: Platform.OS === "web" ? 90 : 120,
+    left: 20, right: 20, zIndex: 30,
+    backgroundColor: "rgba(32,31,31,0.85)", borderRadius: 18,
+    padding: 16, alignItems: "center", gap: 6,
+    borderWidth: 1, borderColor: "rgba(59,73,76,0.25)",
   },
-  instrTitle: {
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_700Bold",
-    color: COLORS.onSurface,
-    letterSpacing: 2.5,
-    textTransform: "uppercase",
-  },
-  instrSub: {
-    fontSize: 12,
-    fontFamily: "Manrope_400Regular",
-    color: COLORS.onSurfaceVariant,
-    textAlign: "center",
-    lineHeight: 18,
-  },
+  instrTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, letterSpacing: 2.5, textTransform: "uppercase" },
+  instrSub: { fontSize: 12, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 18 },
 
   reticleWrap: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 20,
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: "center", alignItems: "center", zIndex: 20,
   },
   reticle: {
-    width: RETICLE_SIZE,
-    height: RETICLE_SIZE,
-    justifyContent: "center",
-    alignItems: "center",
+    width: RETICLE_SIZE, height: RETICLE_SIZE,
+    justifyContent: "center", alignItems: "center",
   },
-  corner: { position: "absolute", width: CORNER_SIZE, height: CORNER_SIZE, borderWidth: 3.5 },
-  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
-  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
-  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
-  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 12, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  corner: { position: "absolute", width: 46, height: 46, borderWidth: 3.5 },
+  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 10, shadowColor: "#00e5ff", shadowOpacity: 0.9, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
   scanLine: {
-    position: "absolute",
-    top: 8,
-    left: 12,
-    right: 12,
-    height: 2,
+    position: "absolute", top: 8, left: 12, right: 12, height: 2,
     backgroundColor: COLORS.primaryContainer,
-    shadowColor: COLORS.primaryContainer,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
+    shadowColor: COLORS.primaryContainer, shadowOpacity: 1, shadowRadius: 14, shadowOffset: { width: 0, height: 0 },
   },
   reticleCenter: { justifyContent: "center", alignItems: "center" },
-  reticleRing: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.primaryContainer + "40",
-  },
-  reticleDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.primaryContainer,
-    shadowColor: COLORS.primaryContainer,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  detectedBurst: { justifyContent: "center", alignItems: "center" },
-  detectedRingOuter: {
-    position: "absolute",
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 1.5,
-    borderColor: COLORS.tertiaryFixedDim + "50",
-  },
-  detectedRingInner: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: COLORS.tertiaryFixedDim,
-    shadowColor: COLORS.tertiaryFixedDim,
-    shadowOpacity: 0.7,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-  },
+  reticleRing: { position: "absolute", width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: COLORS.primaryContainer + "40" },
+  reticleDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primaryContainer, shadowColor: COLORS.primaryContainer, shadowOpacity: 1, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
 
-  rightActions: {
-    position: "absolute",
-    right: 16,
-    top: "50%",
-    marginTop: -100,
-    zIndex: 30,
-    gap: 12,
-  },
+  detectedWrap: { position: "absolute" },
+  detectedBurst: { position: "absolute", justifyContent: "center", alignItems: "center" },
+  detectedRingOuter: { position: "absolute", width: RETICLE_SIZE + 20, height: RETICLE_SIZE + 20, borderRadius: (RETICLE_SIZE + 20) / 2, borderWidth: 1, borderColor: COLORS.tertiaryFixedDim + "30" },
+  detectedRingInner: { position: "absolute", width: RETICLE_SIZE - 20, height: RETICLE_SIZE - 20, borderRadius: (RETICLE_SIZE - 20) / 2, borderWidth: 2, borderColor: COLORS.tertiaryFixedDim + "60" },
+
+  rightActions: { position: "absolute", right: 14, top: "50%", marginTop: -90, zIndex: 30, gap: 10 },
   sideBtn: {
-    width: 58,
-    height: 58,
-    backgroundColor: "rgba(32,31,31,0.78)",
-    borderRadius: 29,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(59,73,76,0.3)",
-    gap: 3,
+    width: 52, height: 52, backgroundColor: "rgba(32,31,31,0.78)", borderRadius: 26,
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: "rgba(59,73,76,0.3)", gap: 2,
   },
   sideBtnLabel: { fontSize: 7, fontFamily: "Manrope_700Bold", color: COLORS.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 0.4 },
 
-  bottomHUD: {
-    position: "absolute",
-    left: 20,
-    bottom: 150,
-    zIndex: 30,
-    gap: 6,
-  },
+  bottomHUD: { position: "absolute", left: 20, bottom: 155, zIndex: 30, gap: 6 },
   trackingRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  trackingDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: COLORS.primaryContainer,
-    shadowColor: COLORS.primaryContainer,
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  trackingLabel: { fontSize: 10, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 2, textTransform: "uppercase" },
+  trackingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.primaryContainer, shadowColor: COLORS.primaryContainer, shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
+  trackingLabel: { fontSize: 9, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 2, textTransform: "uppercase" },
   signalTrack: { width: 130, height: 3, backgroundColor: COLORS.surfaceContainerHighest, borderRadius: 2, overflow: "hidden" },
-  signalFill: { height: "100%", borderRadius: 2, shadowColor: "#00e5ff", shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } },
-  signalLabel: { fontSize: 9, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, letterSpacing: 1.5, textTransform: "uppercase" },
+  signalFill: { height: "100%", borderRadius: 2 },
+  signalLabel: { fontSize: 8, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, letterSpacing: 1.5, textTransform: "uppercase" },
 
-  bottomActions: {
-    position: "absolute",
-    bottom: 100,
-    left: 20,
-    right: 20,
-    zIndex: 30,
-  },
+  bottomActions: { position: "absolute", bottom: 100, left: 20, right: 20, zIndex: 30 },
   scanBtn: { borderRadius: 18, overflow: "hidden" },
-  scanBtnGrad: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingVertical: 18,
-  },
+  scanBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18 },
   scanBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 2.5, textTransform: "uppercase" },
   scanningBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    backgroundColor: "rgba(32,31,31,0.88)",
-    padding: 18,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(0,229,255,0.2)",
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12,
+    backgroundColor: "rgba(32,31,31,0.88)", padding: 18, borderRadius: 18,
+    borderWidth: 1, borderColor: "rgba(0,229,255,0.2)",
   },
-  scanningDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.primaryContainer,
-    shadowColor: COLORS.primaryContainer,
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-  },
+  scanningDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primaryContainer, shadowColor: COLORS.primaryContainer, shadowOpacity: 1, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
   scanningText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: COLORS.primaryContainer, letterSpacing: 2 },
   detectedActions: { flexDirection: "row", gap: 10 },
   exploreBtn: { flex: 1, borderRadius: 18, overflow: "hidden" },
   exploreBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 18 },
   exploreBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1 },
-  nextBtn: {
-    width: 58,
-    height: 58,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: COLORS.primaryContainer + "50",
-    backgroundColor: "rgba(0,229,255,0.08)",
-  },
+  nextBtn: { width: 56, height: 56, justifyContent: "center", alignItems: "center", borderRadius: 16, borderWidth: 2, borderColor: COLORS.primaryContainer + "50", backgroundColor: "rgba(0,229,255,0.08)" },
 
-  permBox: {
-    width: "85%",
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: 24,
-    padding: 32,
-    alignItems: "center",
-    gap: 16,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "20",
-    overflow: "hidden",
-  },
-  permGlow: {
-    position: "absolute",
-    top: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: COLORS.primaryContainer + "08",
-  },
-  permIconRing: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-    padding: 2,
-  },
-  permIconInner: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 45,
-    backgroundColor: "transparent",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  permBox: { width: "85%", backgroundColor: COLORS.surfaceContainer, borderRadius: 24, padding: 32, alignItems: "center", gap: 16, borderWidth: 1, borderColor: COLORS.outlineVariant + "20", overflow: "hidden" },
+  permGlow: { position: "absolute", top: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: COLORS.primaryContainer + "08" },
+  permIconRing: { width: 90, height: 90, borderRadius: 45, justifyContent: "center", alignItems: "center", overflow: "hidden" },
   permTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center" },
   permText: { fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 22 },
   permBtn: { width: "100%", borderRadius: 16, overflow: "hidden", marginTop: 4 },
@@ -697,107 +658,30 @@ const styles = StyleSheet.create({
   permBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1.5 },
 
   modalRoot: { flex: 1, backgroundColor: COLORS.background },
-  modalTopBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.outlineVariant + "15",
-  },
-  modalClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surfaceContainerHighest,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  modalTopBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, paddingTop: 24, borderBottomWidth: 1, borderBottomColor: COLORS.outlineVariant + "15" },
+  modalClose: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surfaceContainerHighest, justifyContent: "center", alignItems: "center" },
   modalTopTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurfaceVariant, letterSpacing: 2.5 },
   modalScroll: { flex: 1 },
-  modalArtViewer: {
-    padding: 28,
-    alignItems: "center",
-    gap: 16,
-    position: "relative",
-  },
-  modalGlow: {
-    position: "absolute",
-    top: 0,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: COLORS.primaryContainer + "06",
-  },
-  modalIconRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.primaryContainer + "25",
-    overflow: "hidden",
-  },
+  modalArtViewer: { padding: 28, alignItems: "center", gap: 16 },
+  modalModelBox: { backgroundColor: "rgba(0,229,255,0.04)", borderRadius: 24, padding: 16, borderWidth: 1, borderColor: "rgba(0,229,255,0.1)" },
   modalTagRow: { flexDirection: "row", gap: 8 },
-  modalEraTag: {
-    backgroundColor: COLORS.primaryContainer + "12",
-    borderWidth: 1,
-    borderColor: COLORS.primaryContainer + "25",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
+  modalEraTag: { backgroundColor: COLORS.primaryContainer + "12", borderWidth: 1, borderColor: COLORS.primaryContainer + "25", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
   modalEraText: { fontSize: 9, fontFamily: "Manrope_700Bold", color: COLORS.primaryContainer, letterSpacing: 1, textTransform: "uppercase" },
-  modalRarityTag: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
+  modalRarityTag: { backgroundColor: "transparent", borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
   modalRarityText: { fontSize: 9, fontFamily: "Manrope_700Bold", letterSpacing: 1, textTransform: "uppercase" },
-  modalTitle: { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center", lineHeight: 32 },
+  modalTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.onSurface, textAlign: "center", lineHeight: 30 },
   modalDesc: { fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, textAlign: "center", lineHeight: 22 },
   modalActions: { flexDirection: "row", alignItems: "center", gap: 10, width: "100%" },
   modalPlayBtn: { flex: 1, borderRadius: 16, overflow: "hidden" },
   modalPlayGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 15 },
   modalPlayText: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "#00363d", letterSpacing: 1.5 },
-  modalIconBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: COLORS.surfaceContainerHigh,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "25",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  modalIconBtn: { width: 50, height: 50, borderRadius: 16, backgroundColor: COLORS.surfaceContainerHigh, borderWidth: 1, borderColor: COLORS.outlineVariant + "25", justifyContent: "center", alignItems: "center" },
   modalBody: { paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
   modalSectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.primaryContainer, letterSpacing: 2.5, marginBottom: 4 },
-  modalContextCard: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant + "15",
-  },
+  modalContextCard: { flexDirection: "row", gap: 12, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: COLORS.outlineVariant + "15" },
   modalContextBar: { width: 3, backgroundColor: COLORS.primaryContainer, borderRadius: 2 },
   modalContextText: { flex: 1, fontSize: 14, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 22 },
-  modalXpCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: COLORS.tertiaryContainer + "25",
-    overflow: "hidden",
-  },
+  modalXpCard: { flexDirection: "row", alignItems: "flex-start", gap: 14, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: COLORS.tertiaryContainer + "25", overflow: "hidden" },
   modalXpTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: COLORS.tertiary, marginBottom: 4 },
   modalXpSub: { fontSize: 12, fontFamily: "Manrope_400Regular", color: COLORS.onSurfaceVariant, lineHeight: 18 },
   modalFoot: { padding: 20, paddingBottom: 32, borderTopWidth: 1, borderTopColor: COLORS.outlineVariant + "15" },

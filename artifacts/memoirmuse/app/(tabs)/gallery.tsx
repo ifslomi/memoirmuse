@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   Platform,
   Animated,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
+import { useRouter } from "expo-router";
 import COLORS from "@/constants/colors";
+import { useAuth } from "@/context/AuthContext";
 
 const BADGES = [
   { id: "1", name: "First Find", era: "Renaissance", icon: "search" as const, unlocked: true },
@@ -57,6 +60,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 20 : insets.top;
   const ringAnim = useRef(new Animated.Value(0)).current;
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     Animated.timing(ringAnim, { toValue: 1, duration: 1200, delay: 300, useNativeDriver: false }).start();
@@ -66,6 +71,26 @@ export default function ProfileScreen() {
     inputRange: [0, 1],
     outputRange: [CIRCUMFERENCE, CIRCUMFERENCE * (1 - PROGRESS)],
   });
+
+  const handleLogout = () => {
+    if (Platform.OS !== "web") {
+      Alert.alert(
+        "Sign Out",
+        "You will be logged out of the Chronos Interface.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Sign Out",
+            style: "destructive",
+            onPress: () => { logout(); router.replace("/login"); },
+          },
+        ]
+      );
+    } else {
+      logout();
+      router.replace("/login");
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -82,12 +107,21 @@ export default function ProfileScreen() {
           </View>
           <View>
             <Text style={styles.topTitle}>THE CHRONOS INTERFACE</Text>
-            <Text style={styles.topSub}>Historian Profile</Text>
+            <Text style={styles.topSub}>{user ?? "Historian"} • Profile</Text>
           </View>
         </View>
-        <View style={styles.xpChip}>
-          <Feather name="star" size={12} color={COLORS.tertiaryFixedDim} />
-          <Text style={styles.xpText}>1,250 XP</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={styles.xpChip}>
+            <Feather name="star" size={12} color={COLORS.tertiaryFixedDim} />
+            <Text style={styles.xpText}>1,250 XP</Text>
+          </View>
+          <TouchableOpacity
+            onPress={handleLogout}
+            activeOpacity={0.8}
+            style={styles.logoutBtn}
+          >
+            <Feather name="log-out" size={16} color={COLORS.error} />
+          </TouchableOpacity>
         </View>
       </Animated.View>
 
@@ -307,6 +341,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.outlineVariant + "30",
   },
   xpText: { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "#00e5ff" },
+  logoutBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.errorContainer + "18",
+    borderWidth: 1,
+    borderColor: COLORS.error + "30",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   levelCard: {
     borderRadius: 22,
