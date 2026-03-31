@@ -312,24 +312,45 @@ export const MAP_LOCATIONS: MapLocation[] = [
 export const AR_MARKERS: ARMarker[] = [
   {
     id: "1",
-    title: "Zarzuela Stage",
-    description: "A traditional Filipino zarzuela stage from the early 20th century",
-    details: "This is a recreated stage typical of the theaters where Tolentino's zarzuelas were performed. The Tagalog Zarzuela combined Spanish theatrical traditions with Filipino storytelling, music, and cultural elements.",
-    icon: "film",
-  },
-  {
-    id: "2",
-    title: "Nationalist Proclamation",
-    description: "Historical document representing the spirit of Philippine nationalism",
-    details: "During the Philippine-American War, Filipino artists like Tolentino used their craft as weapons of resistance. Documents and proclamations circulated among nationalists helped maintain the spirit of independence.",
+    title: "Zarzuela Libretto",
+    description: "Handwritten manuscript of Tolentino's 'Kahapon, Ngayon at Bukas'",
+    details: "Tolentino's most celebrated zarzuela 'Kahapon, Ngayon at Bukas' (Yesterday, Today and Tomorrow) premiered in 1903 and was seen as a veiled protest against American colonial rule. The original libretto, written in Tagalog, became a symbol of Filipino cultural resistance and national identity. It is considered one of the first Filipino nationalist plays.",
     icon: "file-text",
   },
   {
+    id: "2",
+    title: "Salakot Hat",
+    description: "Traditional woven bamboo hat worn by Filipino revolutionaries",
+    details: "The Salakot is a traditional Filipino hat crafted from woven bamboo, rattan, or metal. During the revolutionary era, it became a symbol of Filipino identity and resistance against colonial culture. Tolentino and his contemporaries wore this as a proud statement of nationhood, rejecting the foreign fashions imposed by colonial powers.",
+    icon: "disc",
+  },
+  {
     id: "3",
+    title: "Barong Tagalog",
+    description: "Traditional Filipino formal dress shirt of the Ilustrado class",
+    details: "The Barong Tagalog, woven from piña (pineapple fiber) or jusi (silk-blend), was the formal attire of the Filipino Ilustrado class to which Tolentino belonged. As a playwright and intellectual, Tolentino wore this distinctly Filipino garment as a symbol of cultural pride and identity during the American colonial period.",
+    icon: "user",
+  },
+  {
+    id: "4",
+    title: "Zarzuela Theater Mask",
+    description: "Comedy and tragedy masks used in Filipino zarzuela productions",
+    details: "The theatrical masks symbolize the dual nature of Tolentino's zarzuelas — on the surface, light entertainment, but beneath, pointed social commentary on colonial oppression. His plays 'Luhang Tagalog' and 'Walang Sugat' used theatrical form as cultural resistance, carrying patriotic messages before live audiences in Manila and the provinces.",
+    icon: "smile",
+  },
+  {
+    id: "5",
     title: "Colonial Era Map",
     description: "A map of the Philippines during the American colonial period",
-    details: "This map shows the Philippines as it appeared during Tolentino's lifetime, including Marikina and Manila where much of his artistic work took place. The colonial era shaped both the challenges and inspirations of his art.",
+    details: "This map shows the Philippines as it appeared during Tolentino's lifetime, with Marikina and Manila at the center of his world. The colonial era shaped both the challenges and inspirations of his art. This region — from Marikina where he was born to the theaters of Intramuros — was the stage on which his life's work unfolded.",
     icon: "map",
+  },
+  {
+    id: "6",
+    title: "Revolutionary Flag",
+    description: "Symbol of the Philippine independence movement",
+    details: "The Philippine revolutionary flag that Tolentino and his fellow nationalists rallied under during the Philippine-American War (1899-1902). As a cultural worker and playwright during this period, Tolentino's zarzuelas served alongside this banner as instruments of the independence movement, inspiring audiences to hold onto their Filipino identity and aspirations for freedom.",
+    icon: "flag",
   },
 ];
 

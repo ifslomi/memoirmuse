@@ -34,42 +34,100 @@ const ARTIFACT_DATA = AR_MARKERS.map((m, i) => ({
 const RETICLE_SIZE = 260;
 const MODEL_SIZE = 200;
 
-// 3D geometry definitions
-const BOX_VERTS: [number, number, number][] = [
-  [-1.4, -0.9, -0.9], [1.4, -0.9, -0.9], [1.4, 0.9, -0.9], [-1.4, 0.9, -0.9],
-  [-1.4, -0.9,  0.9], [1.4, -0.9,  0.9], [1.4, 0.9,  0.9], [-1.4, 0.9,  0.9],
+// === Pedro S. Tolentino Museum Artifact 3D Wireframe Models ===
+
+// 1. SCROLL / ZARZUELA LIBRETTO (rolled manuscript)
+const SCROLL_VERTS: [number, number, number][] = [
+  [ 0.65,-1.1, 0.00],[ 0.33,-1.1, 0.57],[-0.33,-1.1, 0.57],
+  [-0.65,-1.1, 0.00],[-0.33,-1.1,-0.57],[ 0.33,-1.1,-0.57],
+  [ 0.65, 1.1, 0.00],[ 0.33, 1.1, 0.57],[-0.33, 1.1, 0.57],
+  [-0.65, 1.1, 0.00],[-0.33, 1.1,-0.57],[ 0.33, 1.1,-0.57],
 ];
-const BOX_EDGES: [number, number][] = [
+const SCROLL_EDGES: [number, number][] = [
+  [0,1],[1,2],[2,3],[3,4],[4,5],[5,0],
+  [6,7],[7,8],[8,9],[9,10],[10,11],[11,6],
+  [0,6],[1,7],[2,8],[3,9],[4,10],[5,11],
+];
+
+// 2. SALAKOT (traditional Filipino conical bamboo hat)
+const SALAKOT_VERTS: [number, number, number][] = [
+  [ 0.0,-1.4, 0.0],
+  [ 0.65,-0.2, 0.0],[ 0.0,-0.2, 0.65],[-0.65,-0.2, 0.0],[ 0.0,-0.2,-0.65],
+  [ 1.25, 0.5, 0.0],[ 0.88, 0.5, 0.88],[ 0.0, 0.5, 1.25],[-0.88, 0.5, 0.88],
+  [-1.25, 0.5, 0.0],[-0.88, 0.5,-0.88],[ 0.0, 0.5,-1.25],[ 0.88, 0.5,-0.88],
+];
+const SALAKOT_EDGES: [number, number][] = [
+  [0,1],[0,2],[0,3],[0,4],
+  [1,2],[2,3],[3,4],[4,1],
+  [1,5],[2,7],[3,9],[4,11],
+  [5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,5],
+];
+
+// 3. BARONG TAGALOG (traditional Filipino formal dress shirt)
+const BARONG_VERTS: [number, number, number][] = [
+  [-0.35,-1.2,-0.15],[ 0.35,-1.2,-0.15],
+  [ 1.0,-0.85,-0.15],[ 1.65,-0.65,-0.15],[ 1.65,-0.05,-0.15],[ 1.0,-0.05,-0.15],
+  [ 0.85, 1.15,-0.15],[-0.85, 1.15,-0.15],
+  [-1.0,-0.05,-0.15],[-1.65,-0.05,-0.15],[-1.65,-0.65,-0.15],[-1.0,-0.85,-0.15],
+  [-0.75,-0.85, 0.15],[ 0.75,-0.85, 0.15],[ 0.75, 1.15, 0.15],[-0.75, 1.15, 0.15],
+];
+const BARONG_EDGES: [number, number][] = [
+  [0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,0],
+  [12,13],[13,14],[14,15],[15,12],
+  [11,12],[2,13],[6,14],[7,15],
+];
+
+// 4. THEATER MASK (zarzuela comedy/tragedy mask)
+const MASK_VERTS: [number, number, number][] = [
+  [ 0.0,-1.3, 0.0],[ 0.75,-0.95, 0.0],[ 1.1,-0.25, 0.0],[ 0.9, 0.6, 0.0],
+  [ 0.0, 1.1, 0.0],[-0.9, 0.6, 0.0],[-1.1,-0.25, 0.0],[-0.75,-0.95, 0.0],
+  [ 0.55,-0.55, 0.15],[ 0.9,-0.65, 0.1],[ 0.2,-0.65, 0.1],
+  [-0.55,-0.55, 0.15],[-0.9,-0.65, 0.1],[-0.2,-0.65, 0.1],
+  [ 0.0, 0.0, 0.18],
+  [-0.45, 0.45, 0.12],[ 0.0, 0.65, 0.18],[ 0.45, 0.45, 0.12],
+];
+const MASK_EDGES: [number, number][] = [
+  [0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],
+  [9,10],[10,8],[8,9],
+  [12,13],[13,11],[11,12],
+  [15,16],[16,17],[17,15],
+];
+
+// 5. FRAMED MAP (colonial era map of the Philippines)
+const MAP_VERTS: [number, number, number][] = [
+  [-1.3,-1.0,-0.1],[ 1.3,-1.0,-0.1],[ 1.3, 1.0,-0.1],[-1.3, 1.0,-0.1],
+  [-1.3,-1.0, 0.1],[ 1.3,-1.0, 0.1],[ 1.3, 1.0, 0.1],[-1.3, 1.0, 0.1],
+  [-0.6,-0.5,-0.1],[ 0.0,-0.7,-0.1],[ 0.6,-0.4,-0.1],
+  [ 0.4, 0.2,-0.1],[-0.2, 0.5,-0.1],[-0.7, 0.1,-0.1],
+];
+const MAP_EDGES: [number, number][] = [
   [0,1],[1,2],[2,3],[3,0],
   [4,5],[5,6],[6,7],[7,4],
   [0,4],[1,5],[2,6],[3,7],
+  [8,9],[9,10],[10,11],[11,12],[12,13],[13,8],
 ];
 
-const OCT_VERTS: [number, number, number][] = [
-  [0, 1.4, 0], [0, -1.4, 0],
-  [1.0, 0, 0], [-1.0, 0, 0],
-  [0, 0, 1.0], [0, 0, -1.0],
+// 6. REVOLUTIONARY FLAG (Philippine independence flag on pole)
+const FLAG_VERTS: [number, number, number][] = [
+  [ 0.0,-1.4, 0.0],[ 0.0, 1.4, 0.0],
+  [ 0.05,-1.3, 0.05],[ 1.55,-1.3, 0.2],[ 1.55,-0.15, 0.2],[ 0.05,-0.15, 0.05],
+  [ 0.05,-1.2, 0.06],[ 0.05,-0.25, 0.06],[ 0.6,-0.7, 0.14],
+  [ 1.1,-0.9, 0.18],[ 1.1,-1.15, 0.22],[ 1.3,-0.9, 0.25],[ 1.1,-0.65, 0.22],
 ];
-const OCT_EDGES: [number, number][] = [
-  [0,2],[0,3],[0,4],[0,5],
-  [1,2],[1,3],[1,4],[1,5],
-  [2,4],[4,3],[3,5],[5,2],
-];
-
-const PRISM_VERTS: [number, number, number][] = [
-  [-1.2, -0.8, -1.2], [1.2, -0.8, -1.2], [0, 0.9, -1.2],
-  [-1.2, -0.8,  1.2], [1.2, -0.8,  1.2], [0, 0.9,  1.2],
-];
-const PRISM_EDGES: [number, number][] = [
-  [0,1],[1,2],[2,0],
-  [3,4],[4,5],[5,3],
-  [0,3],[1,4],[2,5],
+const FLAG_EDGES: [number, number][] = [
+  [0,1],
+  [2,3],[3,4],[4,5],[5,2],
+  [6,7],[7,8],[8,6],
+  [9,10],[9,11],[9,12],
 ];
 
 const SHAPES = [
-  { verts: BOX_VERTS, edges: BOX_EDGES },
-  { verts: OCT_VERTS, edges: OCT_EDGES },
-  { verts: PRISM_VERTS, edges: PRISM_EDGES },
+  { verts: SCROLL_VERTS, edges: SCROLL_EDGES, name: "ZARZUELA LIBRETTO" },
+  { verts: SALAKOT_VERTS, edges: SALAKOT_EDGES, name: "SALAKOT HAT" },
+  { verts: BARONG_VERTS, edges: BARONG_EDGES, name: "BARONG TAGALOG" },
+  { verts: MASK_VERTS, edges: MASK_EDGES, name: "THEATER MASK" },
+  { verts: MAP_VERTS, edges: MAP_EDGES, name: "COLONIAL MAP" },
+  { verts: FLAG_VERTS, edges: FLAG_EDGES, name: "REVOLUTIONARY FLAG" },
 ];
 
 function rotY(v: [number, number, number], a: number): [number, number, number] {
@@ -88,7 +146,7 @@ function project(v: [number, number, number], fov = 120, dist = 4): [number, num
   return [v[0] * scale, v[1] * scale, v[2]];
 }
 
-function ArtifactModel3D({ shapeIndex }: { shapeIndex: number }) {
+function ArtifactModel3D({ shapeIndex, label }: { shapeIndex: number; label?: string }) {
   const [angle, setAngle] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const shape = SHAPES[shapeIndex % SHAPES.length];
@@ -166,7 +224,7 @@ function ArtifactModel3D({ shapeIndex }: { shapeIndex: number }) {
       </Svg>
       <View style={model3dStyles.labelRow}>
         <View style={model3dStyles.dot} />
-        <Text style={model3dStyles.label}>3D ARTIFACT MODEL</Text>
+        <Text style={model3dStyles.label}>{label ?? shape.name}</Text>
         <View style={model3dStyles.dot} />
       </View>
     </View>
@@ -213,6 +271,9 @@ export default function ARScreen() {
   const [markerIndex, setMarkerIndex] = useState(0);
   const [showDetail, setShowDetail] = useState(false);
   const [signalPct, setSignalPct] = useState(0);
+  const [flashOn, setFlashOn] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [showArtifactList, setShowArtifactList] = useState(false);
 
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -300,6 +361,21 @@ export default function ARScreen() {
     modelFade.setValue(0);
   };
 
+  const handleHint = () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowHint(true);
+  };
+
+  const handleFlash = () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFlashOn((f) => !f);
+  };
+
+  const handleArtifactList = () => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowArtifactList(true);
+  };
+
   if (Platform.OS !== "web" && !permission?.granted) {
     return (
       <View style={[styles.root, styles.center]}>
@@ -334,7 +410,7 @@ export default function ARScreen() {
   return (
     <View style={styles.root}>
       {isNative ? (
-        <CameraView style={StyleSheet.absoluteFill} facing="back" />
+        <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={flashOn} />
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.fakeCam]}>
           <LinearGradient colors={["#050e1a", "#030810", "#050c10"]} style={StyleSheet.absoluteFill} />
@@ -412,16 +488,22 @@ export default function ARScreen() {
       </View>
 
       <View style={styles.rightActions}>
-        {[
-          { icon: "sun" as const, label: "Hint", color: COLORS.tertiaryFixedDim },
-          { icon: "zap" as const, label: "Flash", color: COLORS.primaryContainer },
-          { icon: "archive" as const, label: "Artifacts", color: COLORS.onSurface },
-        ].map((btn) => (
-          <TouchableOpacity key={btn.label} style={styles.sideBtn} activeOpacity={0.8}>
-            <Feather name={btn.icon} size={18} color={btn.color} />
-            <Text style={styles.sideBtnLabel}>{btn.label}</Text>
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity style={styles.sideBtn} onPress={handleHint} activeOpacity={0.8}>
+          <Feather name="sun" size={18} color={COLORS.tertiaryFixedDim} />
+          <Text style={styles.sideBtnLabel}>Hint</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sideBtn, flashOn && styles.sideBtnActive]}
+          onPress={handleFlash}
+          activeOpacity={0.8}
+        >
+          <Feather name="zap" size={18} color={flashOn ? "#00363d" : COLORS.primaryContainer} />
+          <Text style={[styles.sideBtnLabel, flashOn && { color: "#00363d" }]}>Flash</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sideBtn} onPress={handleArtifactList} activeOpacity={0.8}>
+          <Feather name="archive" size={18} color={COLORS.onSurface} />
+          <Text style={styles.sideBtnLabel}>Artifacts</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={[styles.bottomHUD, { pointerEvents: "none" }]}>
